@@ -5,7 +5,7 @@ import os
 from datetime import datetime
 from dotenv import load_dotenv
 
-# Cargar variables de entorno
+
 load_dotenv()
 
 BASE_URL = os.getenv("BASE_URL", "https://pimsapi.minibank.com.ar/")
