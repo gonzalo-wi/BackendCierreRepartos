@@ -4,7 +4,8 @@ import base64
 import os
 from datetime import datetime
 from dotenv import load_dotenv
-
+from models.deposit import Deposit
+from database import SessionLocal
 
 load_dotenv()
 
@@ -44,6 +45,7 @@ def get_deposits(stIdentifier: str, date: str):
             formatted_date = date
     
     url = f"{BASE_URL}wcf/PIMSWS.svc/api/v3/deposits/byday?stIdentifier={stIdentifier}&date={formatted_date}"
+    print(f"🔍 Consultando API: {url}")
 
     auth_token = base64.b64encode(f"{USER}:{PASSWORD}".encode()).decode()
     headers = {
@@ -51,7 +53,13 @@ def get_deposits(stIdentifier: str, date: str):
         "Content-Type": "application/json"
     }
 
-    response = requests.get(url, headers=headers)
+    try:
+        response = requests.get(url, headers=headers, timeout=30)
+        print(f"✅ Respuesta recibida: {response.status_code}")
+    except requests.exceptions.Timeout:
+        raise Exception(f"Timeout al consultar la API para {stIdentifier} en fecha {formatted_date}")
+    except requests.exceptions.RequestException as e:
+        raise Exception(f"Error de conexión: {str(e)}")
 
     if not response.ok:
         raise Exception(f"Error en la API externa: {response.status_code}")
@@ -147,3 +155,53 @@ def get_all_totals(date: str):
         "nafa_total": nafa_total,
         "grand_total": jumillano_total + plata_total + nafa_total
     }
+
+
+def save_deposits_to_db(data: dict):
+    db = SessionLocal()
+    try:
+        for cajero_id, contenido in data.items():
+            array_obj = contenido.get("ArrayOfWSDepositsByDayDTO")
+            if not array_obj:
+                print(f"⚠️ No se encontró 'ArrayOfWSDepositsByDayDTO' para {cajero_id}")
+                continue
+
+            dto_raw = array_obj.get("WSDepositsByDayDTO")
+            if not dto_raw:
+                print(f"⚠️ No se encontró 'WSDepositsByDayDTO' para {cajero_id}")
+                continue
+
+            # Asegurarse de que siempre sea una lista
+            dto_list = [dto_raw] if isinstance(dto_raw, dict) else dto_raw
+
+            for deposito in dto_list:
+                deposit_id = deposito.get("depositId")
+                if not deposit_id:
+                    continue  # Evitá registros inválidos
+
+                # Evitar duplicados
+                existing = db.query(Deposit).filter(Deposit.deposit_id == deposit_id).first()
+                if existing:
+                    continue
+
+                deposit = Deposit(
+                    deposit_id=deposit_id,
+                    identifier=deposito.get("identifier"),
+                    user_name=deposito.get("userName"),
+                    total_amount=int(deposito["currencies"]["WSDepositCurrency"]["totalAmount"]),
+                    currency_code=deposito["currencies"]["WSDepositCurrency"]["currencyCode"],
+                    deposit_type=deposito.get("depositType"),
+                    date_time=datetime.fromisoformat(deposito["dateTime"]),
+                    pos_name=deposito.get("posName"),
+                    st_name=deposito.get("stName")
+                )
+                db.add(deposit)
+
+        db.commit()
+        print("✅ Depósitos guardados con éxito")
+    except Exception as e:
+        db.rollback()
+        print(f"❌ Error al guardar depósitos: {e}")
+        raise e
+    finally:
+        db.close()
