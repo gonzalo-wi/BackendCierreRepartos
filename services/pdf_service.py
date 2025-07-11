@@ -351,7 +351,7 @@ def generate_detailed_repartos_pdf(repartos_data, date):
     # Resumen final
     story.append(Paragraph("RESUMEN GENERAL", subtitle_style))
     
-    # Calcular totales generales
+    
     total_general = 0
     resumen_data = [['Planta', 'Total ($)', 'Cantidad de Repartos']]
     
@@ -369,7 +369,7 @@ def generate_detailed_repartos_pdf(repartos_data, date):
     
     resumen_data.append(['TOTAL GENERAL', format_currency(total_general), ''])
     
-    # Tabla de resumen
+   
     resumen_table = Table(resumen_data, colWidths=[3*inch, 2*inch, 2*inch])
     resumen_table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.darkblue),

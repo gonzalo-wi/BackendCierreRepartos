@@ -4,7 +4,7 @@ import base64
 import os
 from datetime import datetime
 from dotenv import load_dotenv
-from models.deposit import Deposit
+from models.deposit import Deposit, EstadoDeposito
 from database import SessionLocal
 
 load_dotenv()
@@ -160,6 +160,10 @@ def get_all_totals(date: str):
 def save_deposits_to_db(data: dict):
     db = SessionLocal()
     try:
+        deposits_procesados = 0
+        deposits_actualizados = 0
+        deposits_nuevos = 0
+        
         for cajero_id, contenido in data.items():
             array_obj = contenido.get("ArrayOfWSDepositsByDayDTO")
             if not array_obj:
@@ -179,29 +183,59 @@ def save_deposits_to_db(data: dict):
                 if not deposit_id:
                     continue  # Evitá registros inválidos
 
-                # Evitar duplicados
-                existing = db.query(Deposit).filter(Deposit.deposit_id == deposit_id).first()
-                if existing:
+                try:
+                    # Intentar buscar el depósito existente
+                    existing = db.query(Deposit).filter(Deposit.deposit_id == deposit_id).first()
+                    
+                    if existing:
+                        # Actualizar el depósito existente con datos frescos
+                        existing.identifier = deposito.get("identifier")
+                        existing.user_name = deposito.get("userName")
+                        existing.total_amount = int(deposito["currencies"]["WSDepositCurrency"]["totalAmount"])
+                        existing.currency_code = deposito["currencies"]["WSDepositCurrency"]["currencyCode"]
+                        existing.deposit_type = deposito.get("depositType")
+                        existing.date_time = datetime.fromisoformat(deposito["dateTime"])
+                        existing.pos_name = deposito.get("posName")
+                        existing.st_name = deposito.get("stName")
+                        
+                        deposits_actualizados += 1
+                        print(f"🔄 Actualizado depósito existente: {deposit_id}")
+                    else:
+                        # Crear nuevo depósito
+                        deposit = Deposit(
+                            deposit_id=deposit_id,
+                            identifier=deposito.get("identifier"),
+                            user_name=deposito.get("userName"),
+                            total_amount=int(deposito["currencies"]["WSDepositCurrency"]["totalAmount"]),
+                            currency_code=deposito["currencies"]["WSDepositCurrency"]["currencyCode"],
+                            deposit_type=deposito.get("depositType"),
+                            date_time=datetime.fromisoformat(deposito["dateTime"]),
+                            pos_name=deposito.get("posName"),
+                            st_name=deposito.get("stName"),
+                            # Nuevos campos
+                            deposit_esperado=None,  
+                            estado=EstadoDeposito.PENDIENTE  
+                        )
+                        db.add(deposit)
+                        deposits_nuevos += 1
+                        print(f"➕ Nuevo depósito creado: {deposit_id}")
+                    
+                    deposits_procesados += 1
+                    
+                except Exception as deposit_error:
+                    print(f"⚠️ Error procesando depósito {deposit_id}: {deposit_error}")
+                    # Continuar con el siguiente depósito en lugar de fallar completamente
                     continue
 
-                deposit = Deposit(
-                    deposit_id=deposit_id,
-                    identifier=deposito.get("identifier"),
-                    user_name=deposito.get("userName"),
-                    total_amount=int(deposito["currencies"]["WSDepositCurrency"]["totalAmount"]),
-                    currency_code=deposito["currencies"]["WSDepositCurrency"]["currencyCode"],
-                    deposit_type=deposito.get("depositType"),
-                    date_time=datetime.fromisoformat(deposito["dateTime"]),
-                    pos_name=deposito.get("posName"),
-                    st_name=deposito.get("stName")
-                )
-                db.add(deposit)
-
         db.commit()
-        print("✅ Depósitos guardados con éxito")
+        print(f"✅ Procesamiento completado:")
+        print(f"   📊 Total procesados: {deposits_procesados}")
+        print(f"   ➕ Nuevos: {deposits_nuevos}")
+        print(f"   🔄 Actualizados: {deposits_actualizados}")
+        
     except Exception as e:
         db.rollback()
-        print(f"❌ Error al guardar depósitos: {e}")
+        print(f"❌ Error general al guardar depósitos: {e}")
         raise e
     finally:
         db.close()

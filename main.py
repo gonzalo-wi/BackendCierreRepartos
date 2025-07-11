@@ -1,6 +1,7 @@
 import traceback
 from datetime import datetime
 from fastapi import FastAPI, Query, HTTPException
+from pydantic import BaseModel
 from services.deposits_mapper import map_deposit_to_reparto
 from services.deposits_service import (
     get_deposits,
@@ -13,19 +14,31 @@ from services.deposits_service import (
     get_nafa_total,
     get_all_totals,
     save_deposits_to_db
-    
 )
+from services.repartos_api_service import actualizar_depositos_esperados
 
 from services.pdf_service import generate_daily_closure_pdf, generate_detailed_repartos_pdf
 from fastapi.responses import JSONResponse, Response
 from database import Base, engine
-from models.deposit import Deposit
-from datetime import datetime
+# Importar todos los modelos para resolver relaciones SQLAlchemy
+from models.deposit import Deposit, EstadoDeposito
+from models.cheque_retencion import Cheque, Retencion
+from routers.movimientos_financieros import router as movimientos_router
 
 
 app = FastAPI()
 
+# Incluir el router de movimientos financieros
+app.include_router(movimientos_router, prefix="/api", tags=["movimientos-financieros"])
+
 Base.metadata.create_all(bind=engine)
+
+# Modelos Pydantic para requests
+class StatusUpdateRequest(BaseModel):
+    status: str
+
+class ExpectedAmountUpdateRequest(BaseModel):
+    deposit_esperado: int
 
 
 @app.get("/api/deposits")
@@ -39,7 +52,18 @@ def deposits(stIdentifier: str = Query(...), date: str = Query(...)):
 @app.get("/api/deposits/jumillano")
 def deposits_jumillano(date: str = Query(...)):
     try:
+        # Obtener datos de miniBank
         data = get_jumillano_deposits(date)
+        
+        # Auto-sincronizar valores esperados desde API externa
+        try:
+            print(f"🔄 Auto-sincronizando valores esperados para Jumillano {date}...")
+            resultado_sync = actualizar_depositos_esperados(date)
+            print(f"💰 Sincronización: {resultado_sync.get('actualizados', 0)} depósitos actualizados")
+        except Exception as sync_error:
+            print(f"⚠️ Error en auto-sincronización de valores esperados: {sync_error}")
+            # Continuar aunque falle la sincronización
+        
         return JSONResponse(content=data)
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
@@ -47,7 +71,18 @@ def deposits_jumillano(date: str = Query(...)):
 @app.get("/api/deposits/nafa")
 def deposits_nafa(date: str = Query(...)):
     try:
+        # Obtener datos de miniBank
         data = get_nafa_deposits(date)
+        
+        # Auto-sincronizar valores esperados desde API externa
+        try:
+            print(f"🔄 Auto-sincronizando valores esperados para Nafa {date}...")
+            resultado_sync = actualizar_depositos_esperados(date)
+            print(f"💰 Sincronización: {resultado_sync.get('actualizados', 0)} depósitos actualizados")
+        except Exception as sync_error:
+            print(f"⚠️ Error en auto-sincronización de valores esperados: {sync_error}")
+            # Continuar aunque falle la sincronización
+        
         return JSONResponse(content=data)
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
@@ -55,7 +90,18 @@ def deposits_nafa(date: str = Query(...)):
 @app.get("/api/deposits/plata")
 def deposits_plata(date: str = Query(...)):
     try:
+        # Obtener datos de miniBank
         data = get_plata_deposits(date)
+        
+        # Auto-sincronizar valores esperados desde API externa
+        try:
+            print(f"🔄 Auto-sincronizando valores esperados para La Plata {date}...")
+            resultado_sync = actualizar_depositos_esperados(date)
+            print(f"💰 Sincronización: {resultado_sync.get('actualizados', 0)} depósitos actualizados")
+        except Exception as sync_error:
+            print(f"⚠️ Error en auto-sincronización de valores esperados: {sync_error}")
+            # Continuar aunque falle la sincronización
+        
         return JSONResponse(content=data)
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})    
@@ -63,7 +109,18 @@ def deposits_plata(date: str = Query(...)):
 @app.get("/api/deposits/all")
 def deposits_all(date: str = Query(...)):
     try:
+        # Obtener datos de miniBank
         data = get_all_deposits(date)
+        
+        # Auto-sincronizar valores esperados desde API externa
+        try:
+            print(f"🔄 Auto-sincronizando valores esperados para {date}...")
+            resultado_sync = actualizar_depositos_esperados(date)
+            print(f"💰 Sincronización: {resultado_sync.get('actualizados', 0)} depósitos actualizados")
+        except Exception as sync_error:
+            print(f"⚠️ Error en auto-sincronización de valores esperados: {sync_error}")
+            # Continuar aunque falle la sincronización
+        
         return JSONResponse(content=data)
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})    
@@ -374,6 +431,52 @@ def test_database():
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
 
+@app.get("/api/test-extraction")
+def test_idreparto_extraction():
+    """
+    Endpoint para probar la extracción de idreparto de diferentes formatos de user_name
+    """
+    from services.repartos_api_service import extraer_idreparto_de_user_name
+    
+    # Casos de prueba
+    test_cases = [
+        "42, RTO 042",
+        "RTO 277, 277", 
+        "1, algo más",
+        "RTO 123, algo",
+        "999, TEST",
+        ", 456",  # edge case
+        "ABC 789, XYZ",
+        "123",  # sin coma
+        "",  # vacío
+        None,  # None
+        "RTO, 321",  # texto y número separado por coma
+        "100, RTO 200, 300"  # múltiples números
+    ]
+    
+    resultados = []
+    for case in test_cases:
+        try:
+            idreparto = extraer_idreparto_de_user_name(case)
+            resultados.append({
+                "user_name": case,
+                "idreparto_extraido": idreparto,
+                "status": "ok" if idreparto is not None else "no_extraido"
+            })
+        except Exception as e:
+            resultados.append({
+                "user_name": case,
+                "idreparto_extraido": None,
+                "status": "error",
+                "error": str(e)
+            })
+    
+    return {
+        "status": "ok",
+        "message": "Prueba de extracción de idreparto completada",
+        "resultados": resultados
+    }
+
 @app.get("/api/deposits/sync")
 def sync_deposits_today():
     """
@@ -473,28 +576,37 @@ def get_all_deposits_with_sync(date: str = Query(None)):
 def get_deposits_from_db_by_plant(date: str = Query(...)):
     """
     Obtiene depósitos desde la base de datos organizados por planta
-    Auto-sincroniza si es la fecha de hoy
+    Auto-sincroniza datos frescos de miniBank y valores esperados de la API externa
     """
     try:
         from database import SessionLocal
         from sqlalchemy import and_, func
         from datetime import datetime as dt
         
-        # Verificar si es hoy y auto-sincronizar
+        # Verificar si es hoy y auto-sincronizar datos frescos de miniBank
         today = datetime.now().strftime("%Y-%m-%d")
-        auto_synced = False
+        auto_synced_minibank = False
         
         if date == today:
             try:
-                print(f"🔄 Auto-sincronizando datos para hoy: {date}")
-                # Obtener datos frescos de la API y guardarlos
+                print(f"🔄 Auto-sincronizando datos frescos de miniBank para hoy: {date}")
+                # Obtener datos frescos de la API de miniBank y guardarlos
                 fresh_data = get_all_deposits(date)
                 save_deposits_to_db(fresh_data)
-                auto_synced = True
-                print("✅ Datos auto-sincronizados correctamente")
+                auto_synced_minibank = True
+                print("✅ Datos de miniBank sincronizados")
             except Exception as sync_error:
-                print(f"⚠️ Error en auto-sincronización: {sync_error}")
-                # Continuar con los datos de la BD aunque falle la sincronización
+                print(f"⚠️ Error en auto-sincronización de miniBank: {sync_error}")
+        
+        # SIEMPRE sincronizar valores esperados desde la API externa (para cualquier fecha)
+        try:
+            print(f"🔄 Auto-sincronizando valores esperados desde API externa para {date}...")
+            resultado_esperados = actualizar_depositos_esperados(date)
+            print(f"💰 Valores esperados: {resultado_esperados.get('actualizados', 0)} depósitos actualizados")
+            auto_synced_expected = True
+        except Exception as sync_error:
+            print(f"⚠️ Error en auto-sincronización de valores esperados: {sync_error}")
+            auto_synced_expected = False
         
         db = SessionLocal()
         
@@ -535,6 +647,10 @@ def get_deposits_from_db_by_plant(date: str = Query(...)):
                 "identifier": deposit.identifier,
                 "user_name": deposit.user_name,
                 "total_amount": deposit.total_amount,
+                "deposit_esperado": deposit.deposit_esperado,
+                "diferencia": deposit.diferencia,
+                "tiene_diferencia": deposit.tiene_diferencia,
+                "estado": deposit.estado.value if deposit.estado else "PENDIENTE",
                 "currency_code": deposit.currency_code,
                 "deposit_type": deposit.deposit_type,
                 "date_time": deposit.date_time.isoformat(),
@@ -564,7 +680,8 @@ def get_deposits_from_db_by_plant(date: str = Query(...)):
             "status": "ok",
             "date": date,
             "source": "database",
-            "auto_synced": auto_synced,
+            "auto_synced_minibank": auto_synced_minibank,
+            "auto_synced_expected": auto_synced_expected,
             "is_today": date == today,
             "plants": plants,
             "summary": {
@@ -624,6 +741,10 @@ def get_deposits_from_db_by_machine(date: str = Query(...)):
                 "deposit_id": deposit.deposit_id,
                 "user_name": deposit.user_name,
                 "total_amount": deposit.total_amount,
+                "deposit_esperado": deposit.deposit_esperado,
+                "diferencia": deposit.diferencia,
+                "tiene_diferencia": deposit.tiene_diferencia,
+                "estado": deposit.estado.value if deposit.estado else "PENDIENTE",
                 "currency_code": deposit.currency_code,
                 "deposit_type": deposit.deposit_type,
                 "date_time": deposit.date_time.isoformat(),
@@ -748,5 +869,294 @@ def get_db_summary():
         
     except Exception as e:
         print(f"❌ Error al obtener resumen: {str(e)}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/api/deposits/{deposit_id}/status")
+def update_deposit_status(deposit_id: str, request: StatusUpdateRequest):
+    """
+    Actualiza el estado de un depósito específico
+    Frontend solo puede cambiar de PENDIENTE a LISTO
+    """
+    try:
+        from database import SessionLocal
+        
+        status_str = request.status
+        
+        # Validar que el estado es válido para frontend
+        if status_str not in ["PENDIENTE", "LISTO"]:
+            raise HTTPException(
+                status_code=400, 
+                detail="Frontend solo puede cambiar estados entre PENDIENTE y LISTO"
+            )
+        
+        try:
+            nuevo_estado = EstadoDeposito(status_str)
+        except ValueError:
+            raise HTTPException(
+                status_code=400, 
+                detail="Estado inválido"
+            )
+        
+        db = SessionLocal()
+        
+        # Buscar el depósito
+        deposit = db.query(Deposit).filter(Deposit.deposit_id == deposit_id).first()
+        
+        if not deposit:
+            db.close()
+            raise HTTPException(status_code=404, detail=f"Depósito {deposit_id} no encontrado")
+        
+        # Validar transiciones permitidas para frontend
+        current_status = deposit.estado.value if deposit.estado else "PENDIENTE"
+        
+        if current_status == "ENVIADO":
+            db.close()
+            raise HTTPException(
+                status_code=400, 
+                detail="No se puede modificar un depósito ya ENVIADO"
+            )
+        
+        # Solo permitir: PENDIENTE ↔ LISTO
+        if not ((current_status == "PENDIENTE" and nuevo_estado.value == "LISTO") or 
+                (current_status == "LISTO" and nuevo_estado.value == "PENDIENTE")):
+            db.close()
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Transición no permitida: {current_status} → {nuevo_estado.value}"
+            )
+        
+        # Actualizar el estado
+        old_status = deposit.estado.value if deposit.estado else "PENDIENTE"
+        deposit.estado = nuevo_estado
+        
+        db.commit()
+        db.refresh(deposit)
+        
+        # Preparar respuesta
+        result = {
+            "status": "ok",
+            "message": f"Estado actualizado de {old_status} a {nuevo_estado.value}",
+            "deposit": {
+                "deposit_id": deposit.deposit_id,
+                "user_name": deposit.user_name,
+                "total_amount": deposit.total_amount,
+                "deposit_esperado": deposit.deposit_esperado,
+                "diferencia": deposit.diferencia,
+                "tiene_diferencia": deposit.tiene_diferencia,
+                "estado": deposit.estado.value,
+                "date_time": deposit.date_time.isoformat(),
+                "pos_name": deposit.pos_name,
+                "st_name": deposit.st_name
+            }
+        }
+        
+        db.close()
+        
+        print(f"✅ Estado del depósito {deposit_id} actualizado: {old_status} → {nuevo_estado.value}")
+        return result
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Error al actualizar estado del depósito {deposit_id}: {str(e)}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/api/deposits/{deposit_id}/expected-amount")
+def update_deposit_expected_amount(deposit_id: str, request: ExpectedAmountUpdateRequest):
+    """
+    Actualiza el monto esperado de un depósito y recalcula el estado automáticamente
+    """
+    try:
+        from database import SessionLocal
+        
+        monto_esperado = request.deposit_esperado
+        
+        # Validar que sea un número positivo
+        if monto_esperado < 0:
+            raise HTTPException(status_code=400, detail="El monto esperado debe ser un número positivo")
+        
+        db = SessionLocal()
+        
+        # Buscar el depósito
+        deposit = db.query(Deposit).filter(Deposit.deposit_id == deposit_id).first()
+        
+        if not deposit:
+            db.close()
+            raise HTTPException(status_code=404, detail=f"Depósito {deposit_id} no encontrado")
+        
+        # Actualizar el monto esperado
+        old_expected = deposit.deposit_esperado
+        deposit.deposit_esperado = monto_esperado
+        
+        # Actualizar estado automáticamente
+        old_status = deposit.estado.value if deposit.estado else "PENDIENTE"
+        deposit.actualizar_estado()
+        
+        db.commit()
+        db.refresh(deposit)
+        
+        # Preparar respuesta
+        result = {
+            "status": "ok",
+            "message": f"Monto esperado actualizado de {old_expected} a {deposit.deposit_esperado}",
+            "status_change": old_status != deposit.estado.value,
+            "deposit": {
+                "deposit_id": deposit.deposit_id,
+                "user_name": deposit.user_name,
+                "total_amount": deposit.total_amount,
+                "deposit_esperado": deposit.deposit_esperado,
+                "diferencia": deposit.diferencia,
+                "tiene_diferencia": deposit.tiene_diferencia,
+                "estado": deposit.estado.value,
+                "date_time": deposit.date_time.isoformat(),
+                "pos_name": deposit.pos_name,
+                "st_name": deposit.st_name
+            }
+        }
+        
+        db.close()
+        
+        print(f"✅ Monto esperado del depósito {deposit_id} actualizado: {old_expected} → {deposit.deposit_esperado}")
+        print(f"✅ Estado actualizado: {old_status} → {deposit.estado.value}")
+        return result
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Error al actualizar monto esperado del depósito {deposit_id}: {str(e)}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/deposits/states")
+def get_available_states():
+    """
+    Obtiene los estados disponibles para el frontend
+    Solo PENDIENTE y LISTO (ENVIADO es para uso interno)
+    """
+    return {
+        "status": "ok",
+        "states": [
+            {"value": "PENDIENTE", "label": "PENDIENTE"},
+            {"value": "LISTO", "label": "LISTO"}
+        ]
+    }
+
+@app.put("/api/deposits/{deposit_id}/mark-sent")
+def mark_deposit_as_sent(deposit_id: str):
+    """
+    Marca un depósito como ENVIADO (solo para uso interno del backend)
+    """
+    try:
+        from database import SessionLocal
+        
+        db = SessionLocal()
+        
+        # Buscar el depósito
+        deposit = db.query(Deposit).filter(Deposit.deposit_id == deposit_id).first()
+        
+        if not deposit:
+            db.close()
+            raise HTTPException(status_code=404, detail=f"Depósito {deposit_id} no encontrado")
+        
+        current_status = deposit.estado.value if deposit.estado else "PENDIENTE"
+        
+        # Solo se puede enviar si está LISTO
+        if current_status != "LISTO":
+            db.close()
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Solo se pueden enviar depósitos en estado LISTO. Estado actual: {current_status}"
+            )
+        
+        # Cambiar a ENVIADO
+        old_status = deposit.estado.value
+        deposit.estado = EstadoDeposito.ENVIADO
+        
+        db.commit()
+        db.refresh(deposit)
+        
+        # Preparar respuesta
+        result = {
+            "status": "ok",
+            "message": f"Depósito marcado como enviado: {old_status} → ENVIADO",
+            "deposit": {
+                "deposit_id": deposit.deposit_id,
+                "user_name": deposit.user_name,
+                "total_amount": deposit.total_amount,
+                "deposit_esperado": deposit.deposit_esperado,
+                "diferencia": deposit.diferencia,
+                "tiene_diferencia": deposit.tiene_diferencia,
+                "estado": deposit.estado.value,
+                "date_time": deposit.date_time.isoformat(),
+                "pos_name": deposit.pos_name,
+                "st_name": deposit.st_name
+            }
+        }
+        
+        db.close()
+        
+        print(f"✅ Depósito {deposit_id} marcado como ENVIADO: {old_status} → ENVIADO")
+        return result
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Error al marcar depósito como enviado {deposit_id}: {str(e)}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/deposits/sync-expected-amounts")
+def sync_expected_amounts(date: str = Query(...)):
+    """
+    Sincroniza los montos esperados desde la API externa de repartos
+    """
+    try:
+        print(f"🔄 Iniciando sincronización de montos esperados para fecha: {date}")
+        
+        resultado = actualizar_depositos_esperados(date)
+        
+        if resultado["status"] == "error":
+            raise HTTPException(status_code=500, detail=resultado["message"])
+        
+        print(f"✅ Sincronización completada: {resultado['actualizados']} depósitos actualizados")
+        return resultado
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Error en sincronización de montos esperados: {str(e)}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/deposits/test-external-api")
+def test_external_api(date: str = Query(...)):
+    """
+    Endpoint de prueba para verificar la conexión con la API externa
+    """
+    try:
+        from services.repartos_api_service import get_repartos_valores
+        from datetime import datetime as dt
+        
+        # Convertir fecha de "YYYY-MM-DD" a "DD/MM/YYYY"
+        fecha_obj = dt.strptime(date, "%Y-%m-%d")
+        fecha_api = fecha_obj.strftime("%d/%m/%Y")
+        
+        print(f"🧪 Probando API externa para fecha: {fecha_api}")
+        
+        repartos = get_repartos_valores(fecha_api)
+        
+        return {
+            "status": "ok",
+            "fecha_consultada": fecha_api,
+            "total_repartos": len(repartos),
+            "repartos_cerrados": len([r for r in repartos if r.get("status") == 1]),
+            "sample_data": repartos[:3] if repartos else [],
+            "all_data": repartos
+        }
+        
+    except Exception as e:
+        print(f"❌ Error probando API externa: {str(e)}")
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
