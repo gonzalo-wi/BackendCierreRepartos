@@ -68,16 +68,22 @@ def generate_daily_closure_pdf(totals_data, date):
     story.append(Paragraph("CIERRE DE CAJA DIARIO", title_style))
     story.append(Spacer(1, 12))
     
-    # Fecha del reporte
+    # Fecha del reporte - Detectar formato automáticamente
     try:
-        date_obj = datetime.strptime(date, "%m-%d-%Y")
-        formatted_date = date_obj.strftime("%d de %B de %Y")
-    except:
-        try:
+        # Intentar formato YYYY-MM-DD primero (más común)
+        if len(date) == 10 and date.count('-') == 2:
+            parts = date.split('-')
+            if len(parts[0]) == 4:  # Año primero (YYYY-MM-DD)
+                date_obj = datetime.strptime(date, "%Y-%m-%d")
+            else:  # Mes primero (MM-DD-YYYY)
+                date_obj = datetime.strptime(date, "%m-%d-%Y")
+        else:
+            # Fallback para otros formatos
             date_obj = datetime.strptime(date, "%Y-%m-%d")
-            formatted_date = date_obj.strftime("%d de %B de %Y")
-        except:
-            formatted_date = date
+        formatted_date = date_obj.strftime("%d de %B de %Y")
+    except ValueError:
+        # Si no se puede parsear, usar la fecha como está
+        formatted_date = date
     
     story.append(Paragraph(f"Fecha: {formatted_date}", subtitle_style))
     story.append(Spacer(1, 20))
@@ -218,8 +224,22 @@ def generate_detailed_repartos_pdf(repartos_data, date):
     title = Paragraph("REPORTE DETALLADO DE REPARTOS", title_style)
     story.append(title)
     
-    # Fecha
-    date_obj = datetime.strptime(date, "%m-%d-%Y") if "-" in date else datetime.strptime(date, "%Y-%m-%d")
+    # Fecha - Detectar formato automáticamente
+    try:
+        # Intentar formato YYYY-MM-DD primero (más común)
+        if len(date) == 10 and date.count('-') == 2:
+            parts = date.split('-')
+            if len(parts[0]) == 4:  # Año primero (YYYY-MM-DD)
+                date_obj = datetime.strptime(date, "%Y-%m-%d")
+            else:  # Mes primero (MM-DD-YYYY)
+                date_obj = datetime.strptime(date, "%m-%d-%Y")
+        else:
+            # Fallback para otros formatos
+            date_obj = datetime.strptime(date, "%Y-%m-%d")
+    except ValueError:
+        # Si falla, usar fecha actual
+        date_obj = datetime.now()
+    
     date_formatted = date_obj.strftime("%d de %B de %Y")
     date_para = Paragraph(f"Fecha: {date_formatted}", normal_style)
     story.append(date_para)

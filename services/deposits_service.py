@@ -142,19 +142,29 @@ def get_nafa_total(date: str):
 
 def get_all_totals(date: str):
     """
-    Obtiene los totales de todas las máquinas desglosados
+    Obtiene los totales de todas las máquinas desglosados y los guarda automáticamente en la base de datos
     """
     jumillano_total = get_jumillano_total(date)
     plata_total = get_plata_total(date)
     nafa_total = get_nafa_total(date)
     
-    return {
+    totals_result = {
         "date": date,
         "jumillano_total": jumillano_total,
         "plata_total": plata_total,
         "nafa_total": nafa_total,
         "grand_total": jumillano_total + plata_total + nafa_total
     }
+    
+    # Guardar automáticamente en la base de datos
+    try:
+        from services.daily_totals_service import save_daily_totals_from_data
+        save_daily_totals_from_data(date, totals_result)
+        print(f"🔄 Totales guardados automáticamente para {date}")
+    except Exception as e:
+        print(f"⚠️ Error al guardar totales automáticamente: {e}")
+    
+    return totals_result
 
 
 def save_deposits_to_db(data: dict):
