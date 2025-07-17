@@ -7,6 +7,11 @@ from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
 from datetime import datetime
 from io import BytesIO
 import locale
+from database import SessionLocal
+from models.deposit import Deposit
+from models.cheque_retencion import Cheque, Retencion
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy import func
 
 # Configurar el locale para formato de números (opcional)
 try:
@@ -23,6 +28,33 @@ def format_currency(amount):
         return locale.format_string("%.2f", amount, grouping=True)
     except:
         return f"{amount:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+def get_cheques_retenciones_totals(deposit_id: str):
+    """
+    Obtiene los totales de cheques y retenciones para un deposit_id específico
+    """
+    db = SessionLocal()
+    try:
+        # Total de cheques
+        total_cheques = db.query(func.sum(Cheque.importe)).filter(
+            Cheque.deposit_id == deposit_id
+        ).scalar() or 0.0
+        
+        # Total de retenciones
+        total_retenciones = db.query(func.sum(Retencion.importe)).filter(
+            Retencion.deposit_id == deposit_id
+        ).scalar() or 0.0
+        
+        return {
+            'cheques': float(total_cheques),
+            'retenciones': float(total_retenciones)
+        }
+        
+    except Exception as e:
+        print(f"⚠️ Error al consultar cheques/retenciones para {deposit_id}: {e}")
+        return {'cheques': 0.0, 'retenciones': 0.0}
+    finally:
+        db.close()
 
 def generate_daily_closure_pdf(totals_data, date):
     """
@@ -287,6 +319,12 @@ def generate_detailed_repartos_pdf(repartos_data, date):
                         except (ValueError, TypeError):
                             continue
                     
+                    # Calcular totales de cheques y retenciones desde la base de datos
+                    deposit_id = deposit.get("depositId", "")
+                    cheques_retenciones = get_cheques_retenciones_totals(deposit_id)
+                    cheques_total = cheques_retenciones['cheques']
+                    retenciones_total = cheques_retenciones['retenciones']
+                    
                     # Limpiar el formato del username para evitar duplicaciones
                     raw_username = deposit.get("userName", "")
                     cleaned_username = raw_username
@@ -307,6 +345,8 @@ def generate_detailed_repartos_pdf(repartos_data, date):
                         'datetime': deposit.get("dateTime", ""),
                         'username': cleaned_username,
                         'amount': str(total_amount),
+                        'cheques_total': cheques_total,
+                        'retenciones_total': retenciones_total,
                         'depositId': deposit.get("depositId", ""),
                         'posName': deposit.get("posName", "")
                     }
@@ -320,9 +360,12 @@ def generate_detailed_repartos_pdf(repartos_data, date):
             story.append(Spacer(1, 10))
             
             # Crear tabla de repartos
-            table_data = [['Hora', 'Usuario', 'Monto ($)', 'Máquina', 'ID Depósito']]
+            table_data = [['Hora', 'Usuario', 'Monto ($)', 'Cheques ($)', 'Retenciones ($)', 'Máquina', 'ID Depósito']]
             
             total_planta = 0
+            total_cheques_planta = 0
+            total_retenciones_planta = 0
+            
             for reparto in plant_data['repartos']:
                 try:
                     amount = float(reparto['amount'])
@@ -330,6 +373,13 @@ def generate_detailed_repartos_pdf(repartos_data, date):
                     amount_formatted = format_currency(amount)
                 except:
                     amount_formatted = reparto['amount']
+                
+                # Obtener totales de cheques y retenciones para este depósito
+                cheques_total = reparto.get('cheques_total', 0.0)
+                retenciones_total = reparto.get('retenciones_total', 0.0)
+                
+                total_cheques_planta += cheques_total
+                total_retenciones_planta += retenciones_total
                 
                 # Extraer solo la hora del datetime
                 try:
@@ -342,27 +392,38 @@ def generate_detailed_repartos_pdf(repartos_data, date):
                     hora,
                     reparto['username'],
                     amount_formatted,
+                    format_currency(cheques_total),
+                    format_currency(retenciones_total),
                     reparto['machine'],
                     reparto['depositId']
                 ])
             
             # Agregar fila de total
-            table_data.append(['', 'TOTAL', format_currency(total_planta), '', ''])
+            table_data.append([
+                '', 
+                'TOTAL', 
+                format_currency(total_planta), 
+                format_currency(total_cheques_planta),
+                format_currency(total_retenciones_planta),
+                '', 
+                ''
+            ])
             
             # Crear y estilizar la tabla
-            table = Table(table_data, colWidths=[1*inch, 2*inch, 1.5*inch, 1.2*inch, 1.3*inch])
+            table = Table(table_data, colWidths=[0.8*inch, 1.5*inch, 1.2*inch, 1*inch, 1*inch, 1*inch, 1.3*inch])
             table.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (-1, 0), colors.darkblue),
                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
                 ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
                 ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, 0), 10),
+                ('FONTSIZE', (0, 0), (-1, 0), 9),
                 ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
                 ('BACKGROUND', (0, 1), (-1, -2), colors.beige),
                 ('BACKGROUND', (0, -1), (-1, -1), colors.lightgrey),
                 ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
                 ('GRID', (0, 0), (-1, -1), 1, colors.black),
-                ('ALIGN', (2, 1), (2, -1), 'RIGHT'),  # Alinear montos a la derecha
+                ('ALIGN', (2, 1), (4, -1), 'RIGHT'),  # Alinear montos a la derecha
+                ('FONTSIZE', (0, 1), (-1, -1), 8),  # Letra más pequeña para contenido
             ]))
             
             story.append(table)
@@ -371,38 +432,51 @@ def generate_detailed_repartos_pdf(repartos_data, date):
     # Resumen final
     story.append(Paragraph("RESUMEN GENERAL", subtitle_style))
     
-    
     total_general = 0
-    resumen_data = [['Planta', 'Total ($)', 'Cantidad de Repartos']]
+    total_cheques_general = 0
+    total_retenciones_general = 0
+    resumen_data = [['Planta', 'Total ($)', 'Cheques ($)', 'Retenciones ($)', 'Cantidad']]
     
     for plant_key, plant_data in plantas.items():
         total_planta = sum(float(r['amount']) for r in plant_data['repartos'])
+        total_cheques = sum(r.get('cheques_total', 0) for r in plant_data['repartos'])
+        total_retenciones = sum(r.get('retenciones_total', 0) for r in plant_data['repartos'])
         cantidad_repartos = len(plant_data['repartos'])
+        
         total_general += total_planta
+        total_cheques_general += total_cheques
+        total_retenciones_general += total_retenciones
         
         plant_name = plant_data['title'].split(' (')[0]
         resumen_data.append([
             plant_name,
             format_currency(total_planta),
+            format_currency(total_cheques),
+            format_currency(total_retenciones),
             str(cantidad_repartos)
         ])
     
-    resumen_data.append(['TOTAL GENERAL', format_currency(total_general), ''])
+    resumen_data.append([
+        'TOTAL GENERAL', 
+        format_currency(total_general), 
+        format_currency(total_cheques_general),
+        format_currency(total_retenciones_general),
+        ''
+    ])
     
-   
-    resumen_table = Table(resumen_data, colWidths=[3*inch, 2*inch, 2*inch])
+    resumen_table = Table(resumen_data, colWidths=[2*inch, 1.5*inch, 1.2*inch, 1.2*inch, 1*inch])
     resumen_table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.darkblue),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 12),
+        ('FONTSIZE', (0, 0), (-1, 0), 11),
         ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
         ('BACKGROUND', (0, 1), (-1, -2), colors.beige),
         ('BACKGROUND', (0, -1), (-1, -1), colors.lightgrey),
         ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
         ('GRID', (0, 0), (-1, -1), 1, colors.black),
-        ('ALIGN', (1, 1), (1, -1), 'RIGHT'),  # Alinear montos a la derecha
+        ('ALIGN', (1, 1), (3, -1), 'RIGHT'),  # Alinear montos a la derecha
     ]))
     
     story.append(resumen_table)

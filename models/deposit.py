@@ -4,6 +4,8 @@ from sqlalchemy.orm import relationship
 from database import Base
 import enum
 
+TOLERANCE_DIFFERENCE = 0.05
+
 class EstadoDeposito(enum.Enum):
     PENDIENTE = "PENDIENTE"
     LISTO     = "LISTO"
@@ -43,11 +45,15 @@ class Deposit(Base):
             return 0
         return self.total_amount - self.deposit_esperado
     
+    
     def actualizar_estado(self):
         """Actualiza el estado basado en la diferencia"""
-        if self.deposit_esperado is None:
-            self.estado = EstadoDeposito.PENDIENTE
-        elif self.total_amount != self.deposit_esperado:
+        if self.deposit_esperado is None or self.deposit_esperado == 0:
             self.estado = EstadoDeposito.PENDIENTE
         else:
+            diferencia = abs(self.total_amount - self.deposit_esperado)
+            porcentaje = diferencia / self.deposit_esperado
+        if porcentaje <= TOLERANCE_DIFFERENCE:
             self.estado = EstadoDeposito.LISTO
+        else:
+            self.estado = EstadoDeposito.PENDIENTE
