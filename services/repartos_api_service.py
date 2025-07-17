@@ -150,9 +150,45 @@ def actualizar_depositos_esperados(fecha_str: str) -> Dict:
         extracciones_exitosas = 0
         coincidencias_encontradas = 0
         
-        # Crear un mapa de idreparto -> efectivo para búsqueda rápida
+        # Crear mapas de idreparto -> valores y composiciones para búsqueda rápida
         # Asegurar que los keys sean enteros para comparación correcta
-        valores_map = {int(r["idreparto"]): r["efectivo"] for r in repartos_valores}
+        try:
+            # Debug: mostrar estructura de los datos
+            if repartos_valores:
+                logging.info(f"🔍 Estructura de primer reparto: {repartos_valores[0].keys()}")
+            
+            valores_map = {}
+            composiciones_map = {}
+            
+            for r in repartos_valores:
+                # Buscar la clave correcta para idreparto (puede variar)
+                id_key = None
+                for key in ['idreparto', 'IdReparto', 'id_reparto', 'idReparto', 'ID', 'id']:
+                    if key in r:
+                        id_key = key
+                        break
+                
+                if id_key:
+                    idreparto = int(r[id_key])
+                    
+                    # Buscar la clave correcta para efectivo
+                    efectivo_key = None
+                    for key in ['efectivo', 'Efectivo']:
+                        if key in r:
+                            efectivo_key = key
+                            break
+                    
+                    if efectivo_key:
+                        valores_map[idreparto] = r[efectivo_key]
+                        composiciones_map[idreparto] = generar_composicion_esperado(r)
+                else:
+                    logging.warning(f"⚠️ No se encontró clave de ID en reparto: {r.keys()}")
+                    
+        except Exception as e:
+            logging.error(f"❌ Error al procesar estructura de repartos: {str(e)}")
+            # Continuar con mapas vacíos en lugar de fallar
+            valores_map = {}
+            composiciones_map = {}
         
         logging.info(f"📊 IDs de reparto disponibles en API: {sorted(valores_map.keys())}")
         
@@ -169,13 +205,17 @@ def actualizar_depositos_esperados(fecha_str: str) -> Dict:
                     if idreparto in valores_map:
                         coincidencias_encontradas += 1
                         efectivo_esperado = int(valores_map[idreparto])
+                        composicion = composiciones_map.get(idreparto, "E")
                         
-                        logging.debug(f"💰 Depósito {deposit.deposit_id}: actual={deposit.deposit_esperado}, esperado={efectivo_esperado}")
+                        logging.debug(f"💰 Depósito {deposit.deposit_id}: actual={deposit.deposit_esperado}, esperado={efectivo_esperado}, composición={composicion}")
                         
-                        # Actualizar solo si el valor cambió
-                        if deposit.deposit_esperado != efectivo_esperado:
+                        # Actualizar solo si el valor o composición cambió
+                        if deposit.deposit_esperado != efectivo_esperado or deposit.composicion_esperado != composicion:
                             old_value = deposit.deposit_esperado
+                            old_composicion = deposit.composicion_esperado
+                            
                             deposit.deposit_esperado = efectivo_esperado
+                            deposit.composicion_esperado = composicion
                             
                             # Actualizar estado automáticamente
                             deposit.actualizar_estado()
@@ -187,12 +227,14 @@ def actualizar_depositos_esperados(fecha_str: str) -> Dict:
                                 "idreparto": idreparto,
                                 "old_expected": old_value,
                                 "new_expected": efectivo_esperado,
+                                "old_composicion": old_composicion,
+                                "new_composicion": composicion,
                                 "estado": deposit.estado.value
                             })
                             
-                            logging.info(f"💰 Actualizado {deposit.deposit_id}: {old_value} -> {efectivo_esperado} (idreparto: {idreparto})")
+                            logging.info(f"💰 Actualizado {deposit.deposit_id}: {old_value} -> {efectivo_esperado}, composición: {old_composicion} -> {composicion} (idreparto: {idreparto})")
                         else:
-                            logging.debug(f"✓ Depósito {deposit.deposit_id} ya tiene el valor correcto: {efectivo_esperado}")
+                            logging.debug(f"✓ Depósito {deposit.deposit_id} ya tiene el valor y composición correctos: {efectivo_esperado} ({composicion})")
                     else:
                         logging.warning(f"⚠️ No se encontró valor para idreparto {idreparto} en API externa (user_name: '{deposit.user_name}')")
                 else:
@@ -231,3 +273,60 @@ def actualizar_depositos_esperados(fecha_str: str) -> Dict:
             "message": str(e),
             "actualizados": 0
         }
+
+def generar_composicion_esperado(reparto_data: Dict) -> str:
+    """
+    Genera la composición del valor esperado usando E (efectivo), C (cheques), R (retenciones)
+    
+    Args:
+        reparto_data: Diccionario con los datos del reparto de la API externa
+        
+    Returns:
+        String con la composición (ej: "E", "ECR", "ER", etc.)
+    """
+    composicion = ""
+    
+    # Verificar efectivo
+    efectivo = reparto_data.get("efectivo", 0) or reparto_data.get("Efectivo", 0)
+    if efectivo and efectivo > 0:
+        composicion += "E"
+    
+    # Verificar cheques
+    cheques = reparto_data.get("cheques", 0) or reparto_data.get("Cheques", 0)
+    if cheques and cheques > 0:
+        composicion += "C"
+    
+    # Verificar retenciones
+    retenciones = reparto_data.get("retenciones", 0) or reparto_data.get("Retenciones", 0)
+    if retenciones and retenciones > 0:
+        composicion += "R"
+    
+    return composicion if composicion else "E"  # Default a "E" si no hay nada
+
+def obtener_composicion_por_idreparto(fecha: str) -> Dict[int, str]:
+    """
+    Obtiene un mapa de idreparto -> composición para una fecha específica
+    
+    Args:
+        fecha: Fecha en formato "DD/MM/YYYY"
+        
+    Returns:
+        Diccionario con idreparto como clave y composición como valor
+    """
+    repartos = get_repartos_valores(fecha)
+    composiciones = {}
+    
+    for reparto in repartos:
+        # Buscar la clave correcta para idreparto
+        id_key = None
+        for key in ['idreparto', 'IdReparto', 'id_reparto', 'ID', 'id']:
+            if key in reparto:
+                id_key = key
+                break
+        
+        if id_key:
+            idreparto = int(reparto[id_key])
+            composicion = generar_composicion_esperado(reparto)
+            composiciones[idreparto] = composicion
+    
+    return composiciones

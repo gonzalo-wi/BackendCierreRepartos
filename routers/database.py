@@ -92,6 +92,7 @@ def get_deposits_from_db_by_plant(date: str = Query(...)):
                 "user_name": deposit.user_name,
                 "total_amount": deposit.total_amount,
                 "deposit_esperado": deposit.deposit_esperado,
+                "composicion_esperado": deposit.composicion_esperado,  # Nuevo campo
                 "diferencia": deposit.diferencia,
                 "tiene_diferencia": deposit.tiene_diferencia,
                 "estado": deposit.estado.value if deposit.estado else "PENDIENTE",
@@ -188,6 +189,7 @@ def get_deposits_from_db_by_machine(date: str = Query(...)):
                 "user_name": deposit.user_name,
                 "total_amount": deposit.total_amount,
                 "deposit_esperado": deposit.deposit_esperado,
+                "composicion_esperado": deposit.composicion_esperado,  # Nuevo campo
                 "diferencia": deposit.diferencia,
                 "tiene_diferencia": deposit.tiene_diferencia,
                 "estado": deposit.estado.value if deposit.estado else "PENDIENTE",

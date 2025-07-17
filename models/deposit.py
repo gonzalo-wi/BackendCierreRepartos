@@ -20,6 +20,7 @@ class Deposit(Base):
     user_name        = Column(String)
     total_amount     = Column(Integer)
     deposit_esperado = Column(Integer, nullable=True)  # Nuevo campo
+    composicion_esperado = Column(String, nullable=True)  # Composición E/C/R
     currency_code    = Column(String)
     deposit_type     = Column(String)
     date_time        = Column(DateTime)
