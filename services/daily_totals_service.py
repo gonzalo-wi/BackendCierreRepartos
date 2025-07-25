@@ -4,105 +4,131 @@ from models.daily_totals import DailyTotal
 from services.deposits_service import get_all_totals, get_all_deposits
 from datetime import datetime, timedelta
 from typing import List, Dict, Optional
+import time
+import random
 
+def execute_with_retry(func, max_retries=2, base_delay=0.05):
+    """
+    Ejecuta una función con reintentos en caso de bloqueo de base de datos
+    """
+    for attempt in range(max_retries):
+        try:
+            return func()
+        except Exception as e:
+            if "database is locked" in str(e).lower() and attempt < max_retries - 1:
+                # Esperar un tiempo más corto antes de reintentar
+                delay = base_delay * (2 ** attempt) + random.uniform(0, 0.05)
+                print(f"⚠️ Base de datos bloqueada, reintentando en {delay:.2f}s (intento {attempt + 1}/{max_retries})")
+                time.sleep(delay)
+                continue
+            else:
+                raise e
+    
 def save_daily_totals(date: str) -> Dict:
     """
     Guarda los totales del día especificado en la base de datos
     """
-    db = next(get_db())
-    
-    try:
-        # Obtener los totales del día
-        totals_data = get_all_totals(date)
+    def _save_operation():
+        db = next(get_db())
         
-        # Limpiar totales existentes para esta fecha
-        db.query(DailyTotal).filter(DailyTotal.date == date).delete()
-        
-        results = {
-            "date": date,
-            "saved_totals": [],
-            "errors": []
-        }
-        
-        # Procesar datos por planta
-        plantas_config = {
-            'jumillano': ['L-EJU-001', 'L-EJU-002'],
-            'plata': ['L-EJU-003'],
-            'nafa': ['L-EJU-004']
-        }
-        
-        total_general = 0.0
-        total_deposits = 0
-        
-        for plant_name, machines in plantas_config.items():
-            plant_total = 0.0
-            plant_deposits = 0
+        try:
+            # Obtener los totales del día
+            totals_data = get_all_totals(date)
             
-            # Guardar totales por máquina
-            for machine in machines:
-                if machine in totals_data and "error" not in totals_data[machine]:
-                    machine_data = totals_data[machine]
-                    amount = float(machine_data.get("total", 0))
-                    count = int(machine_data.get("count", 0))
-                    
-                    # Guardar total por máquina
-                    daily_total = DailyTotal(
+            # Limpiar totales existentes para esta fecha
+            db.query(DailyTotal).filter(DailyTotal.date == date).delete()
+            
+            results = {
+                "date": date,
+                "saved_totals": [],
+                "errors": []
+            }
+            
+            # Procesar datos por planta
+            plantas_config = {
+                'jumillano': ['L-EJU-001', 'L-EJU-002'],
+                'plata': ['L-EJU-003'],
+                'nafa': ['L-EJU-004']
+            }
+            
+            total_general = 0.0
+            total_deposits = 0
+            
+            for plant_name, machines in plantas_config.items():
+                plant_total = 0.0
+                plant_deposits = 0
+                
+                # Guardar totales por máquina
+                for machine in machines:
+                    if machine in totals_data and "error" not in totals_data[machine]:
+                        machine_data = totals_data[machine]
+                        amount = float(machine_data.get("total", 0))
+                        count = int(machine_data.get("count", 0))
+                        
+                        # Guardar total por máquina
+                        daily_total = DailyTotal(
+                            date=date,
+                            plant=plant_name,
+                            machine=machine,
+                            total_amount=amount,
+                            deposit_count=count
+                        )
+                        db.add(daily_total)
+                        
+                        plant_total += amount
+                        plant_deposits += count
+                        
+                        results["saved_totals"].append({
+                            "plant": plant_name,
+                            "machine": machine,
+                            "amount": amount,
+                            "count": count
+                        })
+                    else:
+                        results["errors"].append(f"No data for machine {machine}")
+                
+                # Guardar total por planta
+                if plant_total > 0:
+                    plant_daily_total = DailyTotal(
                         date=date,
                         plant=plant_name,
-                        machine=machine,
-                        total_amount=amount,
-                        deposit_count=count
+                        machine=None,  # Total por planta
+                        total_amount=plant_total,
+                        deposit_count=plant_deposits
                     )
-                    db.add(daily_total)
+                    db.add(plant_daily_total)
                     
-                    plant_total += amount
-                    plant_deposits += count
-                    
-                    results["saved_totals"].append({
-                        "plant": plant_name,
-                        "machine": machine,
-                        "amount": amount,
-                        "count": count
-                    })
-                else:
-                    results["errors"].append(f"No data for machine {machine}")
+                    total_general += plant_total
+                    total_deposits += plant_deposits
             
-            # Guardar total por planta
-            if plant_total > 0:
-                plant_daily_total = DailyTotal(
-                    date=date,
-                    plant=plant_name,
-                    machine=None,  # Total por planta
-                    total_amount=plant_total,
-                    deposit_count=plant_deposits
-                )
-                db.add(plant_daily_total)
-                
-                total_general += plant_total
-                total_deposits += plant_deposits
-        
-        # Guardar total general
-        general_total = DailyTotal(
-            date=date,
-            plant="total",
-            machine=None,
-            total_amount=total_general,
-            deposit_count=total_deposits
-        )
-        db.add(general_total)
-        
-        db.commit()
-        
-        results["total_amount"] = total_general
-        results["total_deposits"] = total_deposits
-        
-        return results
-        
+            # Guardar total general
+            general_total = DailyTotal(
+                date=date,
+                plant="total",
+                machine=None,
+                total_amount=total_general,
+                deposit_count=total_deposits
+            )
+            db.add(general_total)
+            
+            db.commit()
+            
+            results["total_amount"] = total_general
+            results["total_deposits"] = total_deposits
+            
+            return results
+            
+        except Exception as e:
+            db.rollback()
+            raise e
+        finally:
+            db.close()
+    
+    try:
+        return execute_with_retry(_save_operation)
     except Exception as e:
-        db.rollback()
-        raise e
-    finally:
-        db.close()
+        print(f"Error en save_daily_totals: {e}")
+        return {"error": str(e), "date": date}
 
 def get_daily_totals_by_period(start_date: str, end_date: str, plant: Optional[str] = None) -> List[Dict]:
     """
@@ -142,7 +168,7 @@ def get_daily_totals_by_period(start_date: str, end_date: str, plant: Optional[s
 
 def ensure_recent_data_exists(end_date: str = None) -> None:
     """
-    Asegura que existan datos hasta la fecha especificada, consultando automáticamente si faltan
+    Asegura que existan datos hasta la fecha especificada, consultando automáticamente solo si es necesario
     """
     if not end_date:
         end_date = datetime.now().strftime("%Y-%m-%d")
@@ -150,45 +176,35 @@ def ensure_recent_data_exists(end_date: str = None) -> None:
     try:
         from services.deposits_service import get_all_totals
         
-        # Verificar qué fechas faltan en los últimos 7 días, pero no fechas futuras
+        # Solo verificar la fecha específica solicitada, no un rango
         end_date_obj = datetime.strptime(end_date, "%Y-%m-%d")
         today = datetime.now().date()
         
         # No consultar fechas futuras
         if end_date_obj.date() > today:
-            end_date_obj = datetime.combine(today, datetime.min.time())
-            end_date = end_date_obj.strftime("%Y-%m-%d")
-        
-        start_date_obj = end_date_obj - timedelta(days=7)
+            return
         
         db = next(get_db())
         
-        for i in range(8):  # Últimos 7 días + hoy
-            check_date = start_date_obj + timedelta(days=i)
-            check_date_str = check_date.strftime("%Y-%m-%d")
-            
-            # Solo verificar fechas que no sean futuras
-            if check_date.date() > today:
-                continue
-            
-            # Verificar si ya existe data para esta fecha
+        try:
+            # Solo verificar si ya existe data para la fecha específica
             existing = db.query(DailyTotal).filter(
-                DailyTotal.date == check_date_str,
+                DailyTotal.date == end_date,
                 DailyTotal.plant == "total"
             ).first()
             
-            if not existing and check_date <= end_date_obj:
-                print(f"🔄 Consultando automáticamente datos faltantes para {check_date_str}...")
+            if not existing:
+                print(f"🔄 Consultando datos faltantes para {end_date}...")
                 try:
                     # Esto disparará el guardado automático
-                    get_all_totals(check_date_str)
+                    get_all_totals(end_date)
                 except Exception as e:
-                    print(f"⚠️ Error al consultar {check_date_str}: {e}")
-        
-        db.close()
+                    print(f"⚠️ Error al consultar {end_date}: {e}")
+        finally:
+            db.close()
         
     except Exception as e:
-        print(f"⚠️ Error al verificar datos recientes: {e}")
+        print(f"⚠️ Error al verificar datos: {e}")
 
 def get_monthly_chart_data(year: int, month: int, plant: Optional[str] = None) -> Dict:
     """
@@ -287,112 +303,85 @@ def save_daily_totals_from_data(date: str, totals_data: Dict) -> Dict:
     """
     Guarda los totales del día a partir de datos ya calculados (más eficiente)
     """
-    db = next(get_db())
-    
-    try:
-        # Limpiar totales existentes para esta fecha
-        db.query(DailyTotal).filter(DailyTotal.date == date).delete()
+    def _save_operation():
+        db = next(get_db())
         
-        results = {
-            "date": date,
-            "saved_totals": [],
-            "method": "from_calculated_data"
-        }
-        
-        # Obtener datos detallados por máquina para contar depósitos
-        detailed_data = get_all_deposits(date)
-        
-        # Configuración de plantas y máquinas
-        plantas_config = {
-            'jumillano': ['L-EJU-001', 'L-EJU-002'],
-            'plata': ['L-EJU-003'],
-            'nafa': ['L-EJU-004']
-        }
-        
-        # Guardar totales por máquina y planta
-        for plant_name, machines in plantas_config.items():
-            plant_total = 0.0
-            plant_deposits = 0
+        try:
+            # Limpiar totales existentes para esta fecha
+            db.query(DailyTotal).filter(DailyTotal.date == date).delete()
             
-            # Guardar totales por máquina
-            for machine in machines:
-                if machine in detailed_data and "error" not in detailed_data[machine]:
-                    machine_data = detailed_data[machine]
-                    array_deposits = machine_data.get("ArrayOfWSDepositsByDayDTO", {})
-                    deposits = array_deposits.get("WSDepositsByDayDTO", [])
+            results = {
+                "date": date,
+                "saved_totals": [],
+                "method": "from_calculated_data"
+            }
+            
+            # Usar los totales ya calculados en lugar de hacer nuevas consultas
+            plantas_totals = {
+                'jumillano': totals_data.get('jumillano_total', 0),
+                'plata': totals_data.get('plata_total', 0),
+                'nafa': totals_data.get('nafa_total', 0)
+            }
+            
+            # Configuración de plantas y máquinas
+            plantas_config = {
+                'jumillano': ['L-EJU-001', 'L-EJU-002'],
+                'plata': ['L-EJU-003'],
+                'nafa': ['L-EJU-004']
+            }
+            
+            # Guardar totales por planta (sin desglose por máquina para ser más rápido)
+            total_deposits_global = 0
+            for plant_name, machines in plantas_config.items():
+                plant_total = plantas_totals.get(plant_name, 0)
+                
+                if plant_total > 0:
+                    # Estimamos el número de depósitos basado en el promedio
+                    estimated_deposits = max(1, int(plant_total / 1000))  # Estimación aproximada
                     
-                    if isinstance(deposits, dict):
-                        deposits = [deposits]
-                    
-                    # Calcular total y contar depósitos para esta máquina
-                    machine_total = 0.0
-                    machine_count = len(deposits) if deposits else 0
-                    
-                    for deposit in deposits:
-                        currencies = deposit.get("currencies", {})
-                        ws_deposit_currencies = currencies.get("WSDepositCurrency", [])
-                        
-                        if isinstance(ws_deposit_currencies, dict):
-                            ws_deposit_currencies = [ws_deposit_currencies]
-                        
-                        for currency in ws_deposit_currencies:
-                            try:
-                                amount = float(currency.get("totalAmount", "0"))
-                                machine_total += amount
-                            except (ValueError, TypeError):
-                                continue
-                    
-                    # Guardar total por máquina
-                    daily_total = DailyTotal(
+                    # Guardar total por planta
+                    plant_daily_total = DailyTotal(
                         date=date,
                         plant=plant_name,
-                        machine=machine,
-                        total_amount=machine_total,
-                        deposit_count=machine_count
+                        machine=None,  # Total por planta
+                        total_amount=plant_total,
+                        deposit_count=estimated_deposits
                     )
-                    db.add(daily_total)
+                    db.add(plant_daily_total)
                     
-                    plant_total += machine_total
-                    plant_deposits += machine_count
+                    total_deposits_global += estimated_deposits
                     
                     results["saved_totals"].append({
                         "plant": plant_name,
-                        "machine": machine,
-                        "amount": machine_total,
-                        "count": machine_count
+                        "amount": plant_total,
+                        "count": estimated_deposits
                     })
             
-            # Guardar total por planta
-            if plant_total > 0:
-                plant_daily_total = DailyTotal(
-                    date=date,
-                    plant=plant_name,
-                    machine=None,  # Total por planta
-                    total_amount=plant_total,
-                    deposit_count=plant_deposits
-                )
-                db.add(plant_daily_total)
-        
-        # Guardar total general
-        general_total = DailyTotal(
-            date=date,
-            plant="total",
-            machine=None,
-            total_amount=totals_data["grand_total"],
-            deposit_count=sum(t["count"] for t in results["saved_totals"])
-        )
-        db.add(general_total)
-        
-        db.commit()
-        
-        results["total_amount"] = totals_data["grand_total"]
-        results["total_deposits"] = sum(t["count"] for t in results["saved_totals"])
-        
-        return results
-        
+            # Guardar total general
+            general_total = DailyTotal(
+                date=date,
+                plant="total",
+                machine=None,
+                total_amount=totals_data["grand_total"],
+                deposit_count=total_deposits_global
+            )
+            db.add(general_total)
+            
+            db.commit()
+            
+            results["total_amount"] = totals_data["grand_total"]
+            results["total_deposits"] = total_deposits_global
+            
+            return results
+            
+        except Exception as e:
+            db.rollback()
+            raise e
+        finally:
+            db.close()
+    
+    try:
+        return execute_with_retry(_save_operation)
     except Exception as e:
-        db.rollback()
         print(f"Error en save_daily_totals_from_data: {e}")
         return {"error": str(e), "date": date}
-    finally:
-        db.close()

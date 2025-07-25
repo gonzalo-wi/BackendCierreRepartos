@@ -1,12 +1,13 @@
 from reportlab.lib.pagesizes import letter, A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
 from datetime import datetime
 from io import BytesIO
 import locale
+import os
 from database import SessionLocal
 from models.deposit import Deposit
 from models.cheque_retencion import Cheque, Retencion
@@ -28,6 +29,34 @@ def format_currency(amount):
         return locale.format_string("%.2f", amount, grouping=True)
     except:
         return f"{amount:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+def add_logo_to_story(story):
+    """
+    Agrega el logo de IVESS al PDF si existe
+    """
+    logo_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static", "images", "ivess_logo.png")
+    
+    if os.path.exists(logo_path):
+        try:
+            # Crear imagen con tamaño específico
+            logo = Image(logo_path, width=2*inch, height=1*inch)
+            
+            # Crear una tabla para centrar el logo
+            logo_table = Table([[logo]], colWidths=[6.5*inch])
+            logo_table.setStyle(TableStyle([
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ]))
+            
+            story.append(logo_table)
+            story.append(Spacer(1, 20))
+            return True
+        except Exception as e:
+            print(f"⚠️ Error al cargar el logo: {e}")
+            return False
+    else:
+        print(f"⚠️ Logo no encontrado en: {logo_path}")
+        return False
 
 def get_cheques_retenciones_totals(deposit_id: str):
     """
@@ -60,6 +89,49 @@ def generate_daily_closure_pdf(totals_data, date):
     """
     Genera un PDF con el cierre de caja diario
     """
+    from services.deposits_service import get_jumillano_deposits, get_plata_deposits, get_nafa_deposits
+    
+    # Obtener datos de cheques y retenciones por planta
+    def get_plant_cheques_retenciones(get_deposits_func, date):
+        try:
+            deposits_data = get_deposits_func(date)
+            total_cheques = 0.0
+            total_retenciones = 0.0
+            
+            for cajero_id, contenido in deposits_data.items():
+                array_obj = contenido.get("ArrayOfWSDepositsByDayDTO")
+                if not array_obj:
+                    continue
+                    
+                dto_raw = array_obj.get("WSDepositsByDayDTO")
+                if not dto_raw:
+                    continue
+                    
+                dto_list = [dto_raw] if isinstance(dto_raw, dict) else dto_raw
+                
+                for deposit in dto_list:
+                    deposit_id = deposit.get("depositId")
+                    if deposit_id:
+                        cheques_ret = get_cheques_retenciones_totals(deposit_id)
+                        total_cheques += cheques_ret['cheques']
+                        total_retenciones += cheques_ret['retenciones']
+            
+            return {'cheques': total_cheques, 'retenciones': total_retenciones}
+        except Exception as e:
+            print(f"Error obteniendo cheques/retenciones: {e}")
+            return {'cheques': 0.0, 'retenciones': 0.0}
+    
+    # Obtener totales de cheques y retenciones por planta
+    jumillano_cr = get_plant_cheques_retenciones(get_jumillano_deposits, date)
+    plata_cr = get_plant_cheques_retenciones(get_plata_deposits, date)
+    nafa_cr = get_plant_cheques_retenciones(get_nafa_deposits, date)
+    
+    # Calcular totales globales de efectivo, cheques y retenciones
+    total_efectivo = totals_data['grand_total']
+    total_cheques = jumillano_cr['cheques'] + plata_cr['cheques'] + nafa_cr['cheques']
+    total_retenciones = jumillano_cr['retenciones'] + plata_cr['retenciones'] + nafa_cr['retenciones']
+    total_global = total_efectivo + total_cheques + total_retenciones
+    
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4, 
                           rightMargin=72, leftMargin=72, 
@@ -96,6 +168,9 @@ def generate_daily_closure_pdf(totals_data, date):
     # Lista para almacenar elementos del PDF
     story = []
     
+    # Agregar logo de IVESS
+    add_logo_to_story(story)
+    
     # Título principal
     story.append(Paragraph("CIERRE DE CAJA DIARIO", title_style))
     story.append(Spacer(1, 12))
@@ -124,32 +199,52 @@ def generate_daily_closure_pdf(totals_data, date):
     story.append(Paragraph("JUMILLANO - SISTEMA DE DEPÓSITOS", normal_style))
     story.append(Spacer(1, 20))
     
-    # Crear tabla de resumen
+    # Crear tabla de resumen con cheques y retenciones
     data = [
-        ['UBICACIÓN', 'MÁQUINAS', 'TOTAL DEPÓSITOS', 'ESTADO'],
-        ['', '', '', ''],
-        ['Jumillano', 'L-EJU-001, L-EJU-002', f"$ {format_currency(totals_data['jumillano_total'])}", '✓'],
-        ['La Plata', 'L-EJU-003', f"$ {format_currency(totals_data['plata_total'])}", '✓'],
-        ['Nafa (Lomas de Zamora)', 'L-EJU-004', f"$ {format_currency(totals_data['nafa_total'])}", '✓'],
-        ['', '', '', ''],
-        ['TOTAL GENERAL', '', f"$ {format_currency(totals_data['grand_total'])}", '✓']
+        ['UBICACIÓN', 'EFECTIVO', 'CHEQUES', 'RETENCIONES', 'TOTAL', 'ESTADO'],
+        ['', '', '', '', '', ''],
+        ['Jumillano', 
+         f"$ {format_currency(totals_data['jumillano_total'])}", 
+         f"$ {format_currency(jumillano_cr['cheques'])}", 
+         f"$ {format_currency(jumillano_cr['retenciones'])}", 
+         f"$ {format_currency(totals_data['jumillano_total'] + jumillano_cr['cheques'] + jumillano_cr['retenciones'])}", 
+         '✓'],
+        ['La Plata', 
+         f"$ {format_currency(totals_data['plata_total'])}", 
+         f"$ {format_currency(plata_cr['cheques'])}", 
+         f"$ {format_currency(plata_cr['retenciones'])}", 
+         f"$ {format_currency(totals_data['plata_total'] + plata_cr['cheques'] + plata_cr['retenciones'])}", 
+         '✓'],
+        ['Nafa (Lomas de Zamora)', 
+         f"$ {format_currency(totals_data['nafa_total'])}", 
+         f"$ {format_currency(nafa_cr['cheques'])}", 
+         f"$ {format_currency(nafa_cr['retenciones'])}", 
+         f"$ {format_currency(totals_data['nafa_total'] + nafa_cr['cheques'] + nafa_cr['retenciones'])}", 
+         '✓'],
+        ['', '', '', '', '', ''],
+        ['TOTAL GLOBAL', 
+         f"$ {format_currency(total_efectivo)}", 
+         f"$ {format_currency(total_cheques)}", 
+         f"$ {format_currency(total_retenciones)}", 
+         f"$ {format_currency(total_global)}", 
+         '✓']
     ]
     
-    # Crear la tabla
-    table = Table(data, colWidths=[2.5*inch, 2*inch, 1.5*inch, 0.8*inch])
+    # Crear la tabla con nuevas columnas
+    table = Table(data, colWidths=[2.2*inch, 1.3*inch, 1.3*inch, 1.3*inch, 1.3*inch, 0.6*inch])
     
     # Estilo de la tabla
     table.setStyle(TableStyle([
         # Encabezado
         ('BACKGROUND', (0, 0), (-1, 0), colors.darkblue),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('ALIGN', (0, 0), (-1, 0), 'CENTER'),  # Centrar títulos de columnas
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 12),
+        ('FONTSIZE', (0, 0), (-1, 0), 10),
         
         # Datos
         ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-        ('FONTSIZE', (0, 1), (-1, -1), 10),
+        ('FONTSIZE', (0, 1), (-1, -1), 9),
         ('GRID', (0, 0), (-1, -1), 1, colors.black),
         
         # Fila de separación
@@ -159,10 +254,12 @@ def generate_daily_closure_pdf(totals_data, date):
         # Total general
         ('BACKGROUND', (0, 6), (-1, 6), colors.lightblue),
         ('FONTNAME', (0, 6), (-1, 6), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 6), (-1, 6), 12),
+        ('FONTSIZE', (0, 6), (-1, 6), 10),
         
-        # Alineación de montos
-        ('ALIGN', (2, 0), (2, -1), 'RIGHT'),
+        # Alineación específica para datos (no afecta títulos)
+        ('ALIGN', (0, 1), (0, -1), 'LEFT'),    # Ubicaciones a la izquierda
+        ('ALIGN', (1, 1), (4, -1), 'RIGHT'),   # Montos a la derecha
+        ('ALIGN', (5, 1), (5, -1), 'CENTER'),  # Estado centrado
     ]))
     
     story.append(table)
@@ -251,6 +348,9 @@ def generate_detailed_repartos_pdf(repartos_data, date):
     
     # Contenido del PDF
     story = []
+    
+    # Agregar logo de IVESS
+    add_logo_to_story(story)
     
     # Título
     title = Paragraph("REPORTE DETALLADO DE REPARTOS", title_style)
@@ -360,7 +460,7 @@ def generate_detailed_repartos_pdf(repartos_data, date):
             story.append(Spacer(1, 10))
             
             # Crear tabla de repartos
-            table_data = [['Hora', 'Usuario', 'Monto ($)', 'Cheques ($)', 'Retenciones ($)', 'Máquina', 'ID Depósito']]
+            table_data = [['Hora', 'Usuario', 'Efectivo ($)', 'Cheques ($)', 'Retenciones ($)', 'Máquina', 'ID Depósito']]
             
             total_planta = 0
             total_cheques_planta = 0
@@ -457,7 +557,7 @@ def generate_detailed_repartos_pdf(repartos_data, date):
         ])
     
     resumen_data.append([
-        'TOTAL GENERAL', 
+        'TOTAL GLOBAL', 
         format_currency(total_general), 
         format_currency(total_cheques_general),
         format_currency(total_retenciones_general),
@@ -468,7 +568,7 @@ def generate_detailed_repartos_pdf(repartos_data, date):
     resumen_table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.darkblue),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('ALIGN', (0, 0), (-1, 0), 'CENTER'),  # Centrar títulos de columnas
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
         ('FONTSIZE', (0, 0), (-1, 0), 11),
         ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
@@ -476,7 +576,10 @@ def generate_detailed_repartos_pdf(repartos_data, date):
         ('BACKGROUND', (0, -1), (-1, -1), colors.lightgrey),
         ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
         ('GRID', (0, 0), (-1, -1), 1, colors.black),
-        ('ALIGN', (1, 1), (3, -1), 'RIGHT'),  # Alinear montos a la derecha
+        # Alineación específica para datos
+        ('ALIGN', (0, 1), (0, -1), 'LEFT'),    # Nombres de plantas a la izquierda
+        ('ALIGN', (1, 1), (3, -1), 'RIGHT'),   # Montos a la derecha
+        ('ALIGN', (4, 1), (4, -1), 'CENTER'),  # Cantidad centrada
     ]))
     
     story.append(resumen_table)
