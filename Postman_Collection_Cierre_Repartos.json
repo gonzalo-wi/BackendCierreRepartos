@@ -1,0 +1,131 @@
+{
+	"info": {
+		"name": "Sistema Cierre Repartos",
+		"description": "API para el cierre automático de repartos",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8000",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "1️⃣ Obtener fechas disponibles",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"url": {
+					"raw": "{{baseUrl}}/reparto-cierre/resumen-por-fechas",
+					"host": ["{{baseUrl}}"],
+					"path": ["reparto-cierre", "resumen-por-fechas"]
+				},
+				"description": "Obtiene un resumen de todas las fechas que tienen repartos LISTO para enviar"
+			}
+		},
+		{
+			"name": "2️⃣ Ver repartos de fecha específica",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"url": {
+					"raw": "{{baseUrl}}/reparto-cierre/repartos-listos?fecha=2025-07-23",
+					"host": ["{{baseUrl}}"],
+					"path": ["reparto-cierre", "repartos-listos"],
+					"query": [
+						{
+							"key": "fecha",
+							"value": "2025-07-23",
+							"description": "Fecha en formato YYYY-MM-DD"
+						}
+					]
+				},
+				"description": "Obtiene todos los repartos LISTO de una fecha específica"
+			}
+		},
+		{
+			"name": "3️⃣ 🚀 CERRAR REPARTOS (Principal)",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"fecha_especifica\": \"2025-07-23\",\n  \"max_reintentos\": 3,\n  \"delay_entre_envios\": 1.0\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{baseUrl}}/reparto-cierre/cerrar-repartos",
+					"host": ["{{baseUrl}}"],
+					"path": ["reparto-cierre", "cerrar-repartos"]
+				},
+				"description": "🎯 BOTÓN PRINCIPAL: Procesa y envía todos los repartos LISTO de la fecha seleccionada"
+			}
+		},
+		{
+			"name": "4️⃣ Ver estado general",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"url": {
+					"raw": "{{baseUrl}}/reparto-cierre/estado-repartos",
+					"host": ["{{baseUrl}}"],
+					"path": ["reparto-cierre", "estado-repartos"]
+				},
+				"description": "Muestra estadísticas generales de repartos por estado"
+			}
+		},
+		{
+			"name": "5️⃣ Prueba individual",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"reparto_id\": \"39146123\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{baseUrl}}/reparto-cierre/enviar-reparto-individual",
+					"host": ["{{baseUrl}}"],
+					"path": ["reparto-cierre", "enviar-reparto-individual"]
+				},
+				"description": "Envía un solo reparto específico (para pruebas)"
+			}
+		}
+	]
+}

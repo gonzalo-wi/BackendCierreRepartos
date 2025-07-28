@@ -1,0 +1,138 @@
+{
+	"info": {
+		"name": "Fix Auth Sistema",
+		"description": "Endpoints que funcionan para arreglar auth",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8001",
+			"type": "string"
+		},
+		{
+			"key": "token",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "🔧 SETUP",
+			"item": [
+				{
+					"name": "1. ⚡ Configurar Auth",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/fix/setup",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "fix", "setup"]
+						},
+						"description": "Crea el usuario SuperAdmin automáticamente"
+					}
+				}
+			]
+		},
+		{
+			"name": "🔐 LOGIN",
+			"item": [
+				{
+					"name": "2. ✅ Login que FUNCIONA",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    pm.collectionVariables.set('token', response.access_token);",
+									"    console.log('✅ Token guardado exitosamente');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"superadmin\",\n  \"password\": \"admin123\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/fix/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "fix", "login"]
+						},
+						"description": "Login que funciona sin problemas"
+					}
+				}
+			]
+		},
+		{
+			"name": "🏁 REPARTOS",
+			"item": [
+				{
+					"name": "3. Ver fechas disponibles",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/reparto-cierre/resumen-por-fechas",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "reparto-cierre", "resumen-por-fechas"]
+						}
+					}
+				},
+				{
+					"name": "4. 🚀 Cerrar Repartos",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"fecha_especifica\": \"2025-07-23\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/reparto-cierre/cerrar-repartos",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "reparto-cierre", "cerrar-repartos"]
+						}
+					}
+				}
+			]
+		}
+	]
+}

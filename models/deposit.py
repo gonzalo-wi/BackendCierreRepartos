@@ -27,6 +27,7 @@ class Deposit(Base):
     pos_name         = Column(String)
     st_name          = Column(String)
     estado           = Column(Enum(EstadoDeposito), default=EstadoDeposito.PENDIENTE)
+    fecha_envio      = Column(DateTime, nullable=True)  # Fecha cuando se envió el reparto
 
     # Relaciones con cheques y retenciones
     cheques = relationship("Cheque", back_populates="deposit", cascade="all, delete-orphan")
