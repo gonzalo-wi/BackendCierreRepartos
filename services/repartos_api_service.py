@@ -18,7 +18,7 @@ def get_repartos_valores(fecha: str) -> List[Dict]:
         Lista de diccionarios con los valores de repartos
     """
     try:
-        url = "http://192.168.0.8:97/service1.asmx/reparto_get_valores"
+        url = "http://192.168.0.8:8097/service1.asmx/reparto_get_valores"
         params = {
             "idreparto": 0,  # 0 para obtener todos
             "fecha": fecha

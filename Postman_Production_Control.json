@@ -1,0 +1,227 @@
+{
+	"info": {
+		"name": "Production Control - Cierre Repartos",
+		"description": "Control de modo producción para cierre de repartos",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8001",
+			"type": "string"
+		},
+		{
+			"key": "superadmin_token",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "1. Login SuperAdmin",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"username\": \"superadmin\",\n  \"password\": \"admin123\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/fix/login",
+					"host": ["{{base_url}}"],
+					"path": ["api", "fix", "login"]
+				}
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"if (pm.response.code === 200) {",
+							"  const response = pm.response.json();",
+							"  pm.collectionVariables.set('superadmin_token', response.access_token);",
+							"  console.log('Token guardado: ' + response.access_token);",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			]
+		},
+		{
+			"name": "2. Ver Estado de Producción",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{superadmin_token}}"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/production-control/status",
+					"host": ["{{base_url}}"],
+					"path": ["api", "production-control", "status"]
+				}
+			}
+		},
+		{
+			"name": "3. Probar Conexión SOAP",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{superadmin_token}}"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/production-control/test-connection",
+					"host": ["{{base_url}}"],
+					"path": ["api", "production-control", "test-connection"]
+				}
+			}
+		},
+		{
+			"name": "4. Ver Info SOAP",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{superadmin_token}}"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/production-control/soap-info",
+					"host": ["{{base_url}}"],
+					"path": ["api", "production-control", "soap-info"]
+				}
+			}
+		},
+		{
+			"name": "5. Activar Modo Producción",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{superadmin_token}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"enable_production\": true,\n  \"confirmation_code\": \"ACTIVAR_PRODUCCION_2025\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/production-control/toggle-production",
+					"host": ["{{base_url}}"],
+					"path": ["api", "production-control", "toggle-production"]
+				}
+			}
+		},
+		{
+			"name": "6. Desactivar Modo Producción",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{superadmin_token}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"enable_production\": false\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/production-control/toggle-production",
+					"host": ["{{base_url}}"],
+					"path": ["api", "production-control", "toggle-production"]
+				}
+			}
+		},
+		{
+			"name": "7. Ver Repartos Listos",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{superadmin_token}}"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/reparto-cierre/repartos-listos?fecha=2025-07-28",
+					"host": ["{{base_url}}"],
+					"path": ["api", "reparto-cierre", "repartos-listos"],
+					"query": [
+						{
+							"key": "fecha",
+							"value": "2025-07-28"
+						}
+					]
+				}
+			}
+		},
+		{
+			"name": "8. Procesar Cierre (Desarrollo)",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{superadmin_token}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"fecha_especifica\": \"2025-07-28\",\n  \"max_reintentos\": 3,\n  \"delay_entre_envios\": 1.0,\n  \"modo_test\": false\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/reparto-cierre/cerrar-repartos",
+					"host": ["{{base_url}}"],
+					"path": ["api", "reparto-cierre", "cerrar-repartos"]
+				}
+			}
+		},
+		{
+			"name": "9. Procesar Cierre SIN AUTH (TEST)",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"fecha_especifica\": \"2025-07-28\",\n  \"max_reintentos\": 1,\n  \"delay_entre_envios\": 0.5,\n  \"modo_test\": false\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/reparto-cierre/cerrar-repartos-test",
+					"host": ["{{base_url}}"],
+					"path": ["api", "reparto-cierre", "cerrar-repartos-test"]
+				}
+			}
+		}
+	]
+}

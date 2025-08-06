@@ -1,5 +1,6 @@
 import requests
 import json
+import os
 from datetime import datetime
 from typing import List, Dict, Optional
 from database import SessionLocal
@@ -9,6 +10,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy import func
 import time
 import xml.etree.ElementTree as ET
+import logging
 
 class RepartoCierreService:
     """
@@ -16,8 +18,16 @@ class RepartoCierreService:
     """
     
     def __init__(self):
-        self.soap_url = "http://localhost/Service1.asmx"  # URL del servicio SOAP
+        self.soap_url = "http://192.168.0.8:8097/service1.asmx"  
         self.soap_namespace = "http://airtech-it.com.ar/"
+        
+        self.production_mode = os.getenv("REPARTO_CIERRE_PRODUCTION", "False").lower() == "true"
+        self.default_usuario = "BACKEND_SYSTEM"  
+        
+        
+        modo = "PRODUCCIÓN" if self.production_mode else "DESARROLLO"
+        logging.info(f"🔧 RepartoCierreService inicializado en modo {modo}")
+        logging.info(f"📡 URL SOAP: {self.soap_url}")
         
     def get_repartos_listos(self, fecha_especifica: Optional[datetime] = None) -> List[Dict]:
         """
@@ -55,20 +65,28 @@ class RepartoCierreService:
                 # Determinar planta basada en identifier
                 planta = self._get_planta_from_identifier(deposit.identifier)
                 
+                # Extraer idreparto del user_name
+                idreparto = self._extract_idreparto_from_user_name(deposit.user_name)
+                if idreparto is None:
+                    # Fallback: usar deposit_id si no se puede extraer del user_name
+                    idreparto = self._clean_reparto_id(deposit.deposit_id)
+                    logging.warning(f"⚠️ No se pudo extraer idreparto de user_name '{deposit.user_name}', usando deposit_id: {idreparto}")
+                
                 # Usar el valor esperado como efectivo (no el real)
                 efectivo_importe = str(deposit.deposit_esperado or deposit.total_amount)
                 
                 reparto_data = {
                     "id": deposit.id,
                     "deposit_id": deposit.deposit_id,
-                    "idreparto": self._clean_reparto_id(deposit.deposit_id),
+                    "idreparto": idreparto,
                     "fecha": deposit.date_time.strftime("%d/%m/%Y") if deposit.date_time else datetime.now().strftime("%d/%m/%Y"),
                     "efectivo_importe": efectivo_importe,
-                    "usuario": deposit.user_name or "SISTEMA",
+                    "usuario": self.default_usuario,  # Usar usuario del sistema
                     "cheques": [self._format_cheque(c) for c in cheques],
                     "retenciones": [self._format_retencion(r) for r in retenciones],
                     "planta": planta,
                     "cajero": deposit.identifier,
+                    "user_name_original": deposit.user_name,  # Guardar para debug
                     "diferencia": deposit.diferencia if hasattr(deposit, 'diferencia') else 0,
                     "monto_real": deposit.total_amount,
                     "monto_esperado": deposit.deposit_esperado
@@ -84,6 +102,53 @@ class RepartoCierreService:
         finally:
             db.close()
     
+    def _extract_idreparto_from_user_name(self, user_name: str) -> Optional[int]:
+        """
+        Extrae el idreparto del user_name usando patrones robustos
+        
+        Args:
+            user_name: Nombre de usuario del depósito
+        
+        Returns:
+            El idreparto extraído o None si no se pudo extraer
+        
+        Ejemplos:
+            "42, RTO 042" -> 42
+            "RTO 277, 277" -> 277
+            "1, algo más" -> 1
+            "RTO 123, algo" -> 123
+        """
+        if not user_name:
+            return None
+        
+        try:
+            import re
+            
+            # Buscar el primer número antes de la coma
+            # Esto maneja casos como "42, RTO 042" y "RTO 277, 277"
+            parte_antes_coma = user_name.split(",")[0].strip()
+            
+            # Buscar todos los números en la parte antes de la coma
+            numeros = re.findall(r'\d+', parte_antes_coma)
+            
+            if numeros:
+                # Tomar el primer número encontrado
+                return int(numeros[0])
+            
+            # Si no hay números antes de la coma, buscar después de la coma
+            # Esto maneja casos edge como ", 123"
+            if "," in user_name:
+                parte_despues_coma = user_name.split(",", 1)[1].strip()
+                numeros_despues = re.findall(r'\d+', parte_despues_coma)
+                if numeros_despues:
+                    return int(numeros_despues[0])
+            
+            return None
+            
+        except (ValueError, IndexError) as e:
+            logging.warning(f"⚠️ Error al extraer idreparto de '{user_name}': {e}")
+            return None
+
     def _get_planta_from_identifier(self, identifier: str) -> str:
         """
         Determina la planta basada en el identifier del cajero
@@ -141,12 +206,13 @@ class RepartoCierreService:
     
     def _build_soap_envelope(self, reparto_data: Dict) -> str:
         """
-        Construye el envelope SOAP para el cierre de reparto
+        Construye el envelope SOAP para el cierre de reparto según documentación oficial
         """
-        # Convertir arrays a JSON strings para envío
-        retenciones_json = json.dumps(reparto_data["retenciones"])
-        cheques_json = json.dumps(reparto_data["cheques"])
+        # Formatear retenciones y cheques como strings JSON
+        retenciones_str = json.dumps(reparto_data["retenciones"]) if reparto_data["retenciones"] else "[]"
+        cheques_str = json.dumps(reparto_data["cheques"]) if reparto_data["cheques"] else "[]"
         
+        # Usar SOAP 1.2 según documentación
         soap_envelope = f"""<?xml version="1.0" encoding="utf-8"?>
 <soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
                  xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
@@ -157,13 +223,14 @@ class RepartoCierreService:
       <fecha>{reparto_data["fecha"]}</fecha>
       <ajustar_envases>0</ajustar_envases>
       <efectivo_importe>{reparto_data["efectivo_importe"]}</efectivo_importe>
-      <retenciones>{retenciones_json}</retenciones>
-      <cheques>{cheques_json}</cheques>
+      <retenciones>{retenciones_str}</retenciones>
+      <cheques>{cheques_str}</cheques>
       <usuario>{reparto_data["usuario"]}</usuario>
     </reparto_cerrar>
   </soap12:Body>
 </soap12:Envelope>"""
         
+        logging.debug(f"📋 SOAP Envelope generado para idreparto {reparto_data['idreparto']}")
         return soap_envelope
     
     def enviar_reparto(self, reparto_data: Dict) -> Dict:
@@ -175,29 +242,139 @@ class RepartoCierreService:
             
             headers = {
                 'Content-Type': 'application/soap+xml; charset=utf-8',
-                'SOAPAction': f'{self.soap_namespace}reparto_cerrar'
+                'SOAPAction': f'{self.soap_namespace}reparto_cerrar',
+                'Host': '192.168.0.8',
+                'Content-Length': str(len(soap_envelope))
             }
             
-            print(f"🔄 Enviando reparto ID: {reparto_data['idreparto']} (Planta: {reparto_data['planta']})")
-            print(f"📦 Efectivo: ${reparto_data['efectivo_importe']}, Cheques: {len(reparto_data['cheques'])}, Retenciones: {len(reparto_data['retenciones'])}")
+            logging.info(f"🔄 Enviando reparto ID: {reparto_data['idreparto']} (Planta: {reparto_data['planta']})")
+            logging.info(f"📦 Efectivo: ${reparto_data['efectivo_importe']}, Cheques: {len(reparto_data['cheques'])}, Retenciones: {len(reparto_data['retenciones'])}")
             
-            # TODO: Descomentar cuando esté listo para producción
-            # response = requests.post(
-            #     self.soap_url,
-            #     data=soap_envelope,
-            #     headers=headers,
-            #     timeout=30
-            # )
+            if self.production_mode:
+                # MODO PRODUCCIÓN - Envío real a la API
+                logging.info("🚀 MODO PRODUCCIÓN - Enviando a API real")
+                response = requests.post(
+                    self.soap_url,
+                    data=soap_envelope,
+                    headers=headers,
+                    timeout=30
+                )
+                
+                logging.info(f"📡 Respuesta del servidor: Status {response.status_code}")
+                logging.debug(f"📡 Contenido respuesta: {response.text[:500]}...")
+                
+            else:
+                # MODO DESARROLLO - Simulación
+                logging.warning("⚠️ MODO DESARROLLO - Simulando envío (no se envía a producción)")
+                logging.info(f"🔍 SOAP Envelope que se enviaría:\n{soap_envelope}")
+                
+                # Crear respuesta simulada
+                response = type('Response', (), {
+                    'status_code': 200,
+                    'text': f'''<?xml version="1.0" encoding="utf-8"?>
+<soap12:Envelope xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
+  <soap12:Body>
+    <reparto_cerrarResponse xmlns="http://airtech-it.com.ar/">
+      <reparto_cerrarResult>OK - SIMULADO</reparto_cerrarResult>
+    </reparto_cerrarResponse>
+  </soap12:Body>
+</soap12:Envelope>''',
+                    'raise_for_status': lambda: None
+                })()
             
-            # SIMULACIÓN para desarrollo - eliminar en producción
-            print("⚠️ MODO SIMULACIÓN - No se envía a producción")
-            response_mock = type('Response', (), {
-                'status_code': 200,
-                'text': '<?xml version="1.0" encoding="utf-8"?><soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:airtech="http://airtech-it.com.ar/"><soap:Body><airtech:reparto_cerrarResponse><airtech:reparto_cerrarResult>OK</airtech:reparto_cerrarResult></airtech:reparto_cerrarResponse></soap:Body></soap:Envelope>'
-            })()
+            response.raise_for_status()
             
-            response = response_mock
-            # FIN SIMULACIÓN
+            # Logging detallado de la respuesta para debug
+            logging.info(f"📡 Respuesta completa del servidor:")
+            logging.info(f"📡 Status: {response.status_code}")
+            logging.info(f"📡 Headers: {dict(response.headers)}")
+            logging.info(f"📡 Contenido (primeros 1000 chars): {response.text[:1000]}")
+            
+            # Parsear respuesta XML
+            try:
+                # Intentar limpiar el XML antes de parsearlo
+                xml_content = response.text.strip()
+                
+                
+                if not xml_content.startswith('<?xml') and not xml_content.startswith('<soap'):
+                    logging.warning(f"⚠️ Respuesta no parece ser XML válido. Contenido: {xml_content[:200]}...")
+                    
+                    
+                    if "OK" in xml_content.upper() or response.status_code == 200:
+                        return {
+                            "success": True,
+                            "idreparto": reparto_data["idreparto"],
+                            "response": "OK - Respuesta no XML pero status 200",
+                            "production_mode": self.production_mode,
+                            "timestamp": datetime.now().isoformat(),
+                            "raw_response": xml_content[:500]
+                        }
+                    else:
+                        return {
+                            "success": False,
+                            "error": f"Respuesta no XML y no contiene OK: {xml_content[:200]}",
+                            "idreparto": reparto_data["idreparto"],
+                            "raw_response": xml_content[:500]
+                        }
+                
+                root = ET.fromstring(xml_content)
+                # Buscar el resultado en la respuesta SOAP
+                result_element = root.find('.//{http://airtech-it.com.ar/}reparto_cerrarResult')
+                if result_element is not None:
+                    result = result_element.text
+                else:
+                    result = "OK"  
+                    
+                modo = "PRODUCCIÓN" if self.production_mode else "DESARROLLO"
+                logging.info(f"✅ Reparto {reparto_data['idreparto']} enviado exitosamente ({modo}): {result}")
+                
+                return {
+                    "success": True,
+                    "idreparto": reparto_data["idreparto"],
+                    "response": result,
+                    "production_mode": self.production_mode,
+                    "timestamp": datetime.now().isoformat()
+                }
+                
+            except ET.ParseError as e:
+                logging.error(f"❌ Error parseando respuesta XML: {str(e)}")
+                logging.error(f"❌ Contenido XML problemático: {response.text[:500]}...")
+                
+                # Si el status es 200, podríamos considerar que fue exitoso aunque el XML esté mal
+                if response.status_code == 200:
+                    logging.warning("⚠️ XML malformado pero status 200 - considerando como éxito")
+                    return {
+                        "success": True,
+                        "idreparto": reparto_data["idreparto"],
+                        "response": "OK - XML malformado pero status 200",
+                        "production_mode": self.production_mode,
+                        "timestamp": datetime.now().isoformat(),
+                        "xml_error": str(e),
+                        "raw_response": response.text[:500]
+                    }
+                else:
+                    return {
+                        "success": False,
+                        "error": f"Error parseando respuesta: {str(e)}",
+                        "idreparto": reparto_data["idreparto"],
+                        "xml_error": str(e),
+                        "raw_response": response.text[:500]
+                    }
+                
+        except requests.exceptions.RequestException as e:
+            logging.error(f"❌ Error de conexión enviando reparto {reparto_data['idreparto']}: {str(e)}")
+            return {
+                "success": False,
+                "error": f"Error de conexión: {str(e)}",
+                "idreparto": reparto_data["idreparto"]
+            }
+        except Exception as e:
+            logging.error(f"❌ Error inesperado enviando reparto {reparto_data['idreparto']}: {str(e)}")
+            return {
+                "success": False,
+                "error": f"Error inesperado: {str(e)}",
+                "idreparto": reparto_data["idreparto"]
+            }
             
             if response.status_code == 200:
                 # Parsear respuesta SOAP
@@ -319,6 +496,10 @@ class RepartoCierreService:
                 if resultado["success"]:
                     enviados += 1
                     print(f"✅ Reparto {reparto['idreparto']} enviado exitosamente")
+                    
+                    # Actualizar estado de los depósitos a ENVIADO
+                    self._actualizar_estado_depositos_enviados(reparto['idreparto'])
+                    
                     break
                 else:
                     print(f"❌ Intento {intento + 1}/{max_reintentos} falló: {resultado['error']}")
@@ -404,5 +585,44 @@ class RepartoCierreService:
         except Exception as e:
             print(f"Error al obtener resumen por fechas: {e}")
             return {"total_fechas": 0, "total_repartos_listos": 0, "fechas": []}
+        finally:
+            db.close()
+
+    def _actualizar_estado_depositos_enviados(self, idreparto: int):
+        """
+        Actualiza el estado de los depósitos de un reparto específico a ENVIADO
+        después de que el envío SOAP haya sido exitoso
+        """
+        from database import SessionLocal
+        from models.deposit import Deposit, EstadoDeposito
+        from services.repartos_api_service import extraer_idreparto_de_user_name
+        
+        db = SessionLocal()
+        try:
+            # Buscar todos los depósitos que están en estado LISTO
+            depositos_listo = db.query(Deposit).filter(
+                Deposit.estado == EstadoDeposito.LISTO
+            ).all()
+            
+            actualizados = 0
+            for deposito in depositos_listo:
+                # Usar la función existente para extraer idreparto del user_name
+                idreparto_extraido = extraer_idreparto_de_user_name(deposito.user_name)
+                
+                if idreparto_extraido == idreparto:
+                    deposito.estado = EstadoDeposito.ENVIADO
+                    actualizados += 1
+                    logging.info(f"🔄 Depósito {deposito.deposit_id} (user_name: '{deposito.user_name}') actualizado a ENVIADO")
+            
+            db.commit()
+            
+            if actualizados > 0:
+                logging.info(f"✅ {actualizados} depósitos actualizados a ENVIADO para reparto {idreparto}")
+            else:
+                logging.warning(f"⚠️ No se encontraron depósitos LISTO para reparto {idreparto}")
+                
+        except Exception as e:
+            logging.error(f"❌ Error al actualizar estado de depósitos para reparto {idreparto}: {str(e)}")
+            db.rollback()
         finally:
             db.close()

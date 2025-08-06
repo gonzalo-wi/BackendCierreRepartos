@@ -255,7 +255,8 @@ def cerrar_repartos_test(
     config: CierreConfigModel = CierreConfigModel()
 ):
     """
-    ENDPOINT TEMPORAL SIN AUTENTICACIÓN PARA PRUEBAS
+    ENDPOINT PARA PRUEBAS DE PRODUCCIÓN - SIN AUTENTICACIÓN
+    Úsalo para probar el cierre real mientras ajustas el frontend
     """
     try:
         fecha_obj = None
@@ -268,11 +269,12 @@ def cerrar_repartos_test(
                     detail="Formato de fecha inválido. Use YYYY-MM-DD"
                 )
         
+        # Forzar modo_test a False para pruebas reales
         resultado = cierre_service.procesar_cola_repartos(
             fecha_especifica=fecha_obj,
             max_reintentos=config.max_reintentos or 3,
             delay_entre_envios=config.delay_entre_envios or 1.0,
-            modo_test=config.modo_test if config.modo_test is not None else True
+            modo_test=False  # Siempre False para pruebas reales
         )
         
         return JSONResponse(
@@ -281,11 +283,13 @@ def cerrar_repartos_test(
                 "success": True,
                 "message": "Proceso de cierre completado",
                 "timestamp": _get_current_timestamp(),
+                "production_mode": cierre_service.production_mode,
                 "config": {
                     "fecha_especifica": config.fecha_especifica,
                     "max_reintentos": config.max_reintentos or 3,
                     "delay_entre_envios": config.delay_entre_envios or 1.0,
-                    "modo_test": config.modo_test if config.modo_test is not None else True
+                    "modo_test": False,
+                    "soap_url": cierre_service.soap_url
                 },
                 "resultado": resultado
             }

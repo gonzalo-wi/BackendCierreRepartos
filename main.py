@@ -24,6 +24,7 @@ from routers.reparto_cierre import router as reparto_cierre_router
 from routers.debug import router as debug_router
 from routers.fix_auth import router as fix_auth_router
 from routers.admin_users import router as admin_users_router
+from routers.production_control import router as production_control_router
 
 
 app = FastAPI(
@@ -49,6 +50,7 @@ app.include_router(fix_auth_router, prefix="/api")  # Router de fix auth
 app.include_router(debug_router, prefix="/api")  # Router de debug PRIMERO
 app.include_router(auth_router, prefix="/api")  # Router de autenticación PRIMERO
 app.include_router(admin_users_router, prefix="/api")  # Router de gestión de usuarios
+app.include_router(production_control_router, prefix="/api")  # Control de producción
 app.include_router(deposits_router, prefix="/api")
 app.include_router(totals_router, prefix="/api")
 app.include_router(pdf_router, prefix="/api")
