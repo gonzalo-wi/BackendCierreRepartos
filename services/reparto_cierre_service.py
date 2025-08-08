@@ -53,14 +53,9 @@ class RepartoCierreService:
             repartos_listos = []
             
             for deposit in deposits:
-                # Obtener cheques y retenciones asociados
-                cheques = db.query(Cheque).filter(
-                    Cheque.deposit_id == str(deposit.deposit_id)
-                ).all()
-                
-                retenciones = db.query(Retencion).filter(
-                    Retencion.deposit_id == str(deposit.deposit_id)
-                ).all()
+                # Obtener cheques y retenciones asociados usando la relación ORM
+                cheques = deposit.cheques
+                retenciones = deposit.retenciones
                 
                 # Determinar planta basada en identifier
                 planta = self._get_planta_from_identifier(deposit.identifier)
@@ -181,7 +176,7 @@ class RepartoCierreService:
         """
         return {
             "nrocta": cheque.nrocta or 1,
-            "concepto": "CHE",
+            "concepto": cheque.concepto or "CHE",
             "banco": cheque.banco or "",
             "sucursal": cheque.sucursal or "001",
             "localidad": cheque.localidad or "1234",
@@ -189,7 +184,7 @@ class RepartoCierreService:
             "nro_cuenta": cheque.nro_cuenta or 1234,
             "titular": cheque.titular or "",
             "fecha": cheque.fecha if cheque.fecha else datetime.now().strftime("%d/%m/%Y"),
-            "importe": float(cheque.importe)
+            "importe": float(cheque.importe) if cheque.importe else 0.0
         }
     
     def _format_retencion(self, retencion: Retencion) -> Dict:
@@ -201,7 +196,7 @@ class RepartoCierreService:
             "concepto": retencion.concepto or "RIB",
             "nro_retencion": retencion.nro_retencion or "",
             "fecha": retencion.fecha if retencion.fecha else datetime.now().strftime("%d/%m/%Y"),
-            "importe": float(retencion.importe)
+            "importe": float(retencion.importe) if retencion.importe else 0.0
         }
     
     def _build_soap_envelope(self, reparto_data: Dict) -> str:
@@ -250,6 +245,15 @@ class RepartoCierreService:
             logging.info(f"🔄 Enviando reparto ID: {reparto_data['idreparto']} (Planta: {reparto_data['planta']})")
             logging.info(f"📦 Efectivo: ${reparto_data['efectivo_importe']}, Cheques: {len(reparto_data['cheques'])}, Retenciones: {len(reparto_data['retenciones'])}")
             
+            # LOGGING TEMPORAL PARA DEBUG - Ver qué datos se están enviando
+            if reparto_data['cheques']:
+                logging.info(f"💳 Cheques a enviar: {reparto_data['cheques']}")
+            if reparto_data['retenciones']:
+                logging.info(f"🧾 Retenciones a enviar: {reparto_data['retenciones']}")
+            
+            logging.info(f"📋 XML SOAP completo:\n{soap_envelope}")
+            logging.info("=" * 80)
+            
             if self.production_mode:
                 # MODO PRODUCCIÓN - Envío real a la API
                 logging.info("🚀 MODO PRODUCCIÓN - Enviando a API real")
@@ -295,10 +299,8 @@ class RepartoCierreService:
                 # Intentar limpiar el XML antes de parsearlo
                 xml_content = response.text.strip()
                 
-                
                 if not xml_content.startswith('<?xml') and not xml_content.startswith('<soap'):
                     logging.warning(f"⚠️ Respuesta no parece ser XML válido. Contenido: {xml_content[:200]}...")
-                    
                     
                     if "OK" in xml_content.upper() or response.status_code == 200:
                         return {
@@ -374,66 +376,6 @@ class RepartoCierreService:
                 "success": False,
                 "error": f"Error inesperado: {str(e)}",
                 "idreparto": reparto_data["idreparto"]
-            }
-            
-            if response.status_code == 200:
-                # Parsear respuesta SOAP
-                try:
-                    root = ET.fromstring(response.text)
-                    # Buscar el resultado en la respuesta
-                    result_element = root.find('.//{http://airtech-it.com.ar/}reparto_cerrarResult')
-                    result = result_element.text if result_element is not None else "UNKNOWN"
-                    
-                    if result == "OK":
-                        # Actualizar estado a ENVIADO
-                        self._actualizar_estado_reparto(reparto_data["id"], "ENVIADO")
-                        
-                        return {
-                            "success": True,
-                            "reparto_id": reparto_data["idreparto"],
-                            "message": "Reparto enviado exitosamente",
-                            "soap_result": result
-                        }
-                    else:
-                        return {
-                            "success": False,
-                            "reparto_id": reparto_data["idreparto"],
-                            "error": f"Error en respuesta SOAP: {result}",
-                            "soap_response": response.text
-                        }
-                        
-                except ET.ParseError as e:
-                    return {
-                        "success": False,
-                        "reparto_id": reparto_data["idreparto"],
-                        "error": f"Error al parsear respuesta SOAP: {e}",
-                        "soap_response": response.text
-                    }
-            else:
-                return {
-                    "success": False,
-                    "reparto_id": reparto_data["idreparto"],
-                    "error": f"Error HTTP {response.status_code}",
-                    "soap_response": response.text
-                }
-                
-        except requests.exceptions.Timeout:
-            return {
-                "success": False,
-                "reparto_id": reparto_data["idreparto"],
-                "error": "Timeout al conectar con el servicio SOAP"
-            }
-        except requests.exceptions.RequestException as e:
-            return {
-                "success": False,
-                "reparto_id": reparto_data["idreparto"],
-                "error": f"Error de conexión: {str(e)}"
-            }
-        except Exception as e:
-            return {
-                "success": False,
-                "reparto_id": reparto_data["idreparto"],
-                "error": f"Error inesperado: {str(e)}"
             }
     
     def _actualizar_estado_reparto(self, deposit_db_id: int, nuevo_estado: str) -> bool:

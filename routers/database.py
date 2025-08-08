@@ -100,7 +100,29 @@ def get_deposits_from_db_by_plant(date: str = Query(...)):
                 "deposit_type": deposit.deposit_type,
                 "date_time": deposit.date_time.isoformat(),
                 "pos_name": deposit.pos_name,
-                "st_name": deposit.st_name
+                "st_name": deposit.st_name,
+                # Agregar cheques y retenciones directamente
+                "cheques": [{
+                    "nrocta": cheque.nrocta,
+                    "concepto": cheque.concepto,
+                    "banco": cheque.banco,
+                    "sucursal": cheque.sucursal,
+                    "localidad": cheque.localidad,
+                    "nro_cheque": cheque.nro_cheque,
+                    "nro_cuenta": cheque.nro_cuenta,
+                    "titular": cheque.titular,
+                    "fecha": cheque.fecha,
+                    "importe": float(cheque.importe) if cheque.importe else 0.0
+                } for cheque in deposit.cheques],
+                "retenciones": [{
+                    "nrocta": retencion.nrocta,
+                    "concepto": retencion.concepto,
+                    "nro_retencion": retencion.nro_retencion,
+                    "fecha": retencion.fecha,
+                    "importe": float(retencion.importe) if retencion.importe else 0.0
+                } for retencion in deposit.retenciones],
+                "total_cheques": len(deposit.cheques),
+                "total_retenciones": len(deposit.retenciones)
             }
             
             if deposit.identifier in plants["jumillano"]["machines"]:

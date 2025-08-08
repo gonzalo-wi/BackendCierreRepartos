@@ -25,6 +25,7 @@ from routers.debug import router as debug_router
 from routers.fix_auth import router as fix_auth_router
 from routers.admin_users import router as admin_users_router
 from routers.production_control import router as production_control_router
+from routers.cheques_retenciones import router as cheques_retenciones_router
 
 
 app = FastAPI(
@@ -60,6 +61,7 @@ app.include_router(testing_router, prefix="/api")
 app.include_router(movimientos_router, prefix="/api")
 app.include_router(charts_router, prefix="/api")
 app.include_router(reparto_cierre_router, prefix="/api")
+app.include_router(cheques_retenciones_router, prefix="/api")
 
 
 @app.get("/")
