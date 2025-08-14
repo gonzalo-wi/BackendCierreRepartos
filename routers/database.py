@@ -103,6 +103,7 @@ def get_deposits_from_db_by_plant(date: str = Query(...)):
                 "st_name": deposit.st_name,
                 # Agregar cheques y retenciones directamente
                 "cheques": [{
+                    "id": cheque.id,
                     "nrocta": cheque.nrocta,
                     "concepto": cheque.concepto,
                     "banco": cheque.banco,
@@ -115,6 +116,7 @@ def get_deposits_from_db_by_plant(date: str = Query(...)):
                     "importe": float(cheque.importe) if cheque.importe else 0.0
                 } for cheque in deposit.cheques],
                 "retenciones": [{
+                    "id": retencion.id,
                     "nrocta": retencion.nrocta,
                     "concepto": retencion.concepto,
                     "nro_retencion": retencion.nro_retencion,

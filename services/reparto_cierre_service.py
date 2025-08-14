@@ -174,6 +174,26 @@ class RepartoCierreService:
         """
         Formatea un cheque para el envío SOAP
         """
+        # Formatear fecha correctamente - siempre en formato dd/MM/yyyy
+        fecha_formateada = datetime.now().strftime("%d/%m/%Y")
+        if cheque.fecha:
+            if isinstance(cheque.fecha, str):
+                try:
+                    # Si es string, intentar parsearlo y reformatearlo
+                    fecha_obj = datetime.strptime(cheque.fecha, "%Y-%m-%d")
+                    fecha_formateada = fecha_obj.strftime("%d/%m/%Y")
+                except ValueError:
+                    try:
+                        # Intentar otro formato común
+                        fecha_obj = datetime.strptime(cheque.fecha, "%d/%m/%Y")
+                        fecha_formateada = cheque.fecha  # Ya está en formato correcto
+                    except ValueError:
+                        # Si no se puede parsear, usar fecha actual
+                        fecha_formateada = datetime.now().strftime("%d/%m/%Y")
+            elif hasattr(cheque.fecha, 'strftime'):
+                # Si es datetime object
+                fecha_formateada = cheque.fecha.strftime("%d/%m/%Y")
+        
         return {
             "nrocta": cheque.nrocta or 1,
             "concepto": cheque.concepto or "CHE",
@@ -183,7 +203,7 @@ class RepartoCierreService:
             "nro_cheque": cheque.nro_cheque or "",
             "nro_cuenta": cheque.nro_cuenta or 1234,
             "titular": cheque.titular or "",
-            "fecha": cheque.fecha if cheque.fecha else datetime.now().strftime("%d/%m/%Y"),
+            "fecha": fecha_formateada,
             "importe": float(cheque.importe) if cheque.importe else 0.0
         }
     
@@ -191,11 +211,31 @@ class RepartoCierreService:
         """
         Formatea una retención para el envío SOAP
         """
+        # Formatear fecha correctamente - siempre en formato dd/MM/yyyy
+        fecha_formateada = datetime.now().strftime("%d/%m/%Y")
+        if retencion.fecha:
+            if isinstance(retencion.fecha, str):
+                try:
+                    # Si es string, intentar parsearlo y reformatearlo
+                    fecha_obj = datetime.strptime(retencion.fecha, "%Y-%m-%d")
+                    fecha_formateada = fecha_obj.strftime("%d/%m/%Y")
+                except ValueError:
+                    try:
+                        # Intentar otro formato común
+                        fecha_obj = datetime.strptime(retencion.fecha, "%d/%m/%Y")
+                        fecha_formateada = retencion.fecha  # Ya está en formato correcto
+                    except ValueError:
+                        # Si no se puede parsear, usar fecha actual
+                        fecha_formateada = datetime.now().strftime("%d/%m/%Y")
+            elif hasattr(retencion.fecha, 'strftime'):
+                # Si es datetime object
+                fecha_formateada = retencion.fecha.strftime("%d/%m/%Y")
+        
         return {
             "nrocta": retencion.nrocta or 1,
             "concepto": retencion.concepto or "RIB",
             "nro_retencion": retencion.nro_retencion or "",
-            "fecha": retencion.fecha if retencion.fecha else datetime.now().strftime("%d/%m/%Y"),
+            "fecha": fecha_formateada,
             "importe": float(retencion.importe) if retencion.importe else 0.0
         }
     
@@ -248,8 +288,12 @@ class RepartoCierreService:
             # LOGGING TEMPORAL PARA DEBUG - Ver qué datos se están enviando
             if reparto_data['cheques']:
                 logging.info(f"💳 Cheques a enviar: {reparto_data['cheques']}")
+                for cheque in reparto_data['cheques']:
+                    logging.info(f"   📅 Fecha cheque {cheque.get('nro_cheque', 'N/A')}: '{cheque.get('fecha', 'N/A')}'")
             if reparto_data['retenciones']:
                 logging.info(f"🧾 Retenciones a enviar: {reparto_data['retenciones']}")
+                for retencion in reparto_data['retenciones']:
+                    logging.info(f"   📅 Fecha retención {retencion.get('nro_retencion', 'N/A')}: '{retencion.get('fecha', 'N/A')}'")
             
             logging.info(f"📋 XML SOAP completo:\n{soap_envelope}")
             logging.info("=" * 80)

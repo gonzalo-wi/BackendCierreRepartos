@@ -2,11 +2,15 @@
 Router para endpoints de consulta de depósitos desde miniBank
 """
 from datetime import datetime
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import Optional
 from schemas.requests import StatusUpdateRequest, ExpectedAmountUpdateRequest
+
+# Importar utilidades de logging
+from utils.logging_utils import log_user_action, log_technical_error, log_technical_warning
+from middleware.logging_middleware import log_endpoint_access
 from services.deposits_service import (
     get_deposits,
     get_jumillano_deposits,
@@ -28,17 +32,50 @@ router = APIRouter(
 
 
 @router.get("")
-def deposits(stIdentifier: str = Query(...), date: str = Query(...)):
+@log_endpoint_access("VIEW_DEPOSITS", "deposits")
+def deposits(request: Request, stIdentifier: str = Query(...), date: str = Query(...)):
     try:
+        # Log de la acción específica
+        log_user_action(
+            action="VIEW_DEPOSITS_BY_IDENTIFIER",
+            resource="deposits",
+            request=request,
+            extra_data={
+                "identifier": stIdentifier,
+                "date": date,
+                "query_type": "by_identifier"
+            }
+        )
+        
         data = get_deposits(stIdentifier, date)
+        
         return JSONResponse(content=data)
     except Exception as e:
+        # Log del error técnico
+        log_technical_error(
+            e, 
+            "get_deposits_endpoint",
+            request=request,
+            extra_data={
+                "identifier": stIdentifier,
+                "date": date
+            }
+        )
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 
 @router.get("/jumillano")
-def deposits_jumillano(date: str = Query(...)):
+@log_endpoint_access("VIEW_JUMILLANO_DEPOSITS", "deposits")
+def deposits_jumillano(request: Request, date: str = Query(...)):
     try:
+        # Log de inicio de consulta
+        log_user_action(
+            action="VIEW_JUMILLANO_DEPOSITS",
+            resource="deposits",
+            request=request,
+            extra_data={"date": date, "plant": "jumillano"}
+        )
+        
         # Obtener datos de miniBank
         data = get_jumillano_deposits(date)
         
@@ -47,12 +84,38 @@ def deposits_jumillano(date: str = Query(...)):
             print(f"🔄 Auto-sincronizando valores esperados para Jumillano {date}...")
             resultado_sync = actualizar_depositos_esperados(date)
             print(f"💰 Sincronización: {resultado_sync.get('actualizados', 0)} depósitos actualizados")
+            
+            # Log de sincronización exitosa
+            log_user_action(
+                action="AUTO_SYNC_EXPECTED_AMOUNTS",
+                resource="deposits",
+                request=request,
+                extra_data={
+                    "date": date,
+                    "plant": "jumillano", 
+                    "updated_deposits": resultado_sync.get('actualizados', 0)
+                }
+            )
+            
         except Exception as sync_error:
             print(f"⚠️ Error en auto-sincronización de valores esperados: {sync_error}")
-            # Continuar aunque falle la sincronización
+            # Log de advertencia técnica
+            log_technical_warning(
+                f"Fallo en auto-sincronización de valores esperados: {str(sync_error)}",
+                "auto_sync_expected_amounts",
+                request=request,
+                extra_data={"date": date, "plant": "jumillano"}
+            )
         
         return JSONResponse(content=data)
     except Exception as e:
+        # Log del error técnico
+        log_technical_error(
+            e,
+            "get_jumillano_deposits_endpoint", 
+            request=request,
+            extra_data={"date": date, "plant": "jumillano"}
+        )
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 
@@ -282,6 +345,7 @@ class RetencionCreate(BaseModel):
     numero: Optional[int] = None  # Se mapea a nro_retencion (acepta int)
     importe: float  # REQUERIDO
     concepto: Optional[str] = None
+    numero_cuenta: Optional[int] = None  # Se mapea a nrocta
 
 # ============================================================================
 # ENDPOINTS PARA CREAR CHEQUES Y RETENCIONES
@@ -381,14 +445,34 @@ def create_deposit_retencion(deposit_id: str, retencion: RetencionCreate):
         nro_retencion_value = str(retencion.numero) if retencion.numero else "SIN_NUMERO"
         concepto_value = retencion.concepto or "RIB"
         
+        # DEBUG: Log para ver qué datos llegan del frontend
+        print(f"🔍 DEBUG RETENCIÓN - Datos recibidos:")
+        print(f"   numero: {retencion.numero}")
+        print(f"   importe: {retencion.importe}")
+        print(f"   concepto: {retencion.concepto}")
+        print(f"   numero_cuenta: {getattr(retencion, 'numero_cuenta', 'NO_PRESENTE')}")
+        print(f"   hasattr numero_cuenta: {hasattr(retencion, 'numero_cuenta')}")
+        
+        # Manejar numero_cuenta
+        nrocta_value = 1  # Default
+        if hasattr(retencion, 'numero_cuenta') and retencion.numero_cuenta is not None:
+            try:
+                nrocta_value = int(retencion.numero_cuenta)
+                print(f"✅ Usando numero_cuenta del frontend: {nrocta_value}")
+            except (ValueError, TypeError):
+                nrocta_value = 1  # Default fallback
+                print(f"⚠️ Error al convertir numero_cuenta, usando default: 1")
+        else:
+            print(f"⚠️ No se encontró numero_cuenta en los datos, usando default: 1")
+        
         nueva_retencion = Retencion(
-        deposit_id=deposit_id,
-        nrocta="",  # Default vacío
-        concepto=retencion.concepto or "",
-        nro_retencion=str(retencion.numero) if retencion.numero else "",  # Convertir a string
-        fecha=datetime.now(),
-        importe=retencion.importe
-    )
+            deposit_id=deposit_id,
+            nrocta=nrocta_value,
+            concepto=retencion.concepto or "RIB",
+            nro_retencion=str(retencion.numero) if retencion.numero else "",  # Convertir a string
+            fecha=datetime.now(),
+            importe=retencion.importe
+        )
         
         db.add(nueva_retencion)
         db.commit()
@@ -786,6 +870,229 @@ def delete_all_movimientos(deposit_id: str):
         raise
     except Exception as e:
         db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
+    finally:
+        db.close()
+
+
+# ============================================================================
+# ENDPOINTS PARA EDITAR CHEQUES Y RETENCIONES
+# ============================================================================
+
+@router.put("/{deposit_id}/cheques/{cheque_id}")
+def update_deposit_cheque(deposit_id: str, cheque_id: int, cheque_data: ChequeCreate):
+    """
+    Actualiza un cheque específico por su ID
+    """
+    from database import SessionLocal
+    from models.deposit import Deposit
+    from models.cheque_retencion import Cheque
+    from fastapi import HTTPException
+    from datetime import datetime
+    
+    db = SessionLocal()
+    try:
+        # Verificar que el depósito existe
+        deposit = db.query(Deposit).filter(Deposit.deposit_id == deposit_id).first()
+        if not deposit:
+            raise HTTPException(status_code=404, detail="Depósito no encontrado")
+        
+        # Buscar el cheque específico
+        cheque = db.query(Cheque).filter(
+            Cheque.id == cheque_id,
+            Cheque.deposit_id == deposit_id
+        ).first()
+        
+        if not cheque:
+            raise HTTPException(status_code=404, detail=f"Cheque con ID {cheque_id} no encontrado")
+        
+        # Guardar valores anteriores para el log
+        valores_anteriores = {
+            "nro_cheque": cheque.nro_cheque,
+            "banco": cheque.banco,
+            "importe": float(cheque.importe) if cheque.importe else 0.0,
+            "fecha": cheque.fecha
+        }
+        
+        # Actualizar los campos
+        if cheque_data.numero is not None:
+            cheque.nro_cheque = str(cheque_data.numero)
+            
+        if cheque_data.banco is not None:
+            cheque.banco = cheque_data.banco
+            
+        if cheque_data.importe is not None:
+            cheque.importe = cheque_data.importe
+            
+        # Manejar fecha correctamente
+        if cheque_data.fecha_cobro is not None:
+            fecha_value = cheque_data.fecha_cobro
+            # Convertir formato de fecha si viene como YYYY-MM-DD
+            if fecha_value and "-" in fecha_value:
+                try:
+                    fecha_obj = datetime.strptime(fecha_value, "%Y-%m-%d")
+                    fecha_value = fecha_obj.strftime("%d/%m/%Y")
+                except:
+                    pass  # Mantener formato original si falla conversión
+            cheque.fecha = fecha_value
+        
+        db.commit()
+        db.refresh(cheque)
+        
+        # Log de la acción
+        log_user_action(
+            action="UPDATE_CHEQUE",
+            resource="cheques",
+            resource_id=str(cheque_id), 
+            extra_data={
+                "deposit_id": deposit_id,
+                "valores_anteriores": valores_anteriores,
+                "valores_nuevos": {
+                    "nro_cheque": cheque.nro_cheque,
+                    "banco": cheque.banco,
+                    "importe": float(cheque.importe),
+                    "fecha": cheque.fecha
+                }
+            }
+        )
+        
+        return {
+            "success": True,
+            "message": f"Cheque {cheque_id} actualizado exitosamente",
+            "cheque": {
+                "id": cheque.id,
+                "nrocta": cheque.nrocta,
+                "concepto": cheque.concepto,
+                "banco": cheque.banco,
+                "sucursal": cheque.sucursal,
+                "localidad": cheque.localidad,
+                "nro_cheque": cheque.nro_cheque,
+                "nro_cuenta": cheque.nro_cuenta,
+                "titular": cheque.titular,
+                "fecha": cheque.fecha,
+                "importe": float(cheque.importe)
+            }
+        }
+        
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        log_technical_error(
+            message=f"Error al actualizar cheque {cheque_id}",
+            context={
+                "deposit_id": deposit_id,
+                "cheque_id": cheque_id,
+                "error": str(e)
+            }
+        )
+        raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
+    finally:
+        db.close()
+
+
+@router.put("/{deposit_id}/retenciones/{retencion_id}")
+def update_deposit_retencion(deposit_id: str, retencion_id: int, retencion_data: RetencionCreate):
+    """
+    Actualiza una retención específica por su ID
+    """
+    from database import SessionLocal
+    from models.deposit import Deposit
+    from models.cheque_retencion import Retencion
+    from fastapi import HTTPException
+    from datetime import datetime
+    
+    db = SessionLocal()
+    try:
+        # Verificar que el depósito existe
+        deposit = db.query(Deposit).filter(Deposit.deposit_id == deposit_id).first()
+        if not deposit:
+            raise HTTPException(status_code=404, detail="Depósito no encontrado")
+        
+        # Buscar la retención específica
+        retencion = db.query(Retencion).filter(
+            Retencion.id == retencion_id,
+            Retencion.deposit_id == deposit_id
+        ).first()
+        
+        if not retencion:
+            raise HTTPException(status_code=404, detail=f"Retención con ID {retencion_id} no encontrada")
+        
+        # Guardar valores anteriores para el log
+        valores_anteriores = {
+            "nro_retencion": retencion.nro_retencion,
+            "concepto": retencion.concepto,
+            "importe": float(retencion.importe) if retencion.importe else 0.0,
+            "nrocta": retencion.nrocta
+        }
+        
+        # Actualizar los campos
+        if retencion_data.numero is not None:
+            retencion.nro_retencion = str(retencion_data.numero)
+        
+        if retencion_data.concepto is not None:
+            retencion.concepto = retencion_data.concepto
+        
+        if retencion_data.importe is not None:
+            retencion.importe = retencion_data.importe
+        
+        # Manejar numero_cuenta en actualización
+        if hasattr(retencion_data, 'numero_cuenta') and retencion_data.numero_cuenta is not None:
+            try:
+                retencion.nrocta = int(retencion_data.numero_cuenta)
+            except (ValueError, TypeError):
+                retencion.nrocta = 1  # Default fallback
+        
+        # Actualizar fecha de modificación
+        retencion.fecha = datetime.now()
+        
+        db.commit()
+        db.refresh(retencion)
+        
+        # Log de la acción
+        log_user_action(
+            action="UPDATE_RETENCION",
+            resource="retenciones", 
+            resource_id=str(retencion_id),
+            extra_data={
+                "deposit_id": deposit_id,
+                "valores_anteriores": valores_anteriores,
+                "valores_nuevos": {
+                    "nro_retencion": retencion.nro_retencion,
+                    "concepto": retencion.concepto,
+                    "importe": float(retencion.importe),
+                    "nrocta": retencion.nrocta
+                }
+            }
+        )
+        
+        return {
+            "success": True,
+            "message": f"Retención {retencion_id} actualizada exitosamente",
+            "retencion": {
+                "id": retencion.id,
+                "nrocta": retencion.nrocta,
+                "concepto": retencion.concepto,
+                "nro_retencion": retencion.nro_retencion,
+                "fecha": retencion.fecha,
+                "importe": float(retencion.importe)
+            }
+        }
+        
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        log_technical_error(
+            message=f"Error al actualizar retención {retencion_id}",
+            context={
+                "deposit_id": deposit_id,
+                "retencion_id": retencion_id,
+                "error": str(e)
+            }
+        )
         raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
     finally:
         db.close()

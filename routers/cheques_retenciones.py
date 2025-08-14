@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import List, Optional
@@ -8,6 +8,10 @@ from models.cheque_retencion import Cheque, Retencion
 from models.user import User
 from auth.dependencies import get_any_user
 from datetime import datetime
+
+# Importar utilidades de logging
+from utils.logging_utils import log_user_action, log_technical_error, log_technical_warning
+from middleware.logging_middleware import log_endpoint_access
 
 router = APIRouter(
     prefix="/cheques-retenciones",
@@ -57,16 +61,40 @@ class RetencionUpdate(BaseModel):
 
 # ENDPOINTS PARA CHEQUES
 @router.post("/cheques")
+@log_endpoint_access("CREATE_CHEQUE", "cheques")
 def crear_cheque(
+    request: Request,
     cheque_data: ChequeCreate,
     current_user: User = Depends(get_any_user)
 ):
     """Crear un nuevo cheque asociado a un depósito"""
     db = SessionLocal()
     try:
+        # Log del intento de creación
+        log_user_action(
+            action="ATTEMPT_CREATE_CHEQUE",
+            user_id=current_user.username,
+            resource="cheques",
+            request=request,
+            extra_data={
+                "deposit_id": cheque_data.deposit_id,
+                "importe": cheque_data.importe,
+                "banco": cheque_data.banco,
+                "nro_cheque": cheque_data.nro_cheque
+            }
+        )
+        
         # Verificar que el depósito existe
         deposit = db.query(Deposit).filter(Deposit.deposit_id == cheque_data.deposit_id).first()
         if not deposit:
+            log_technical_warning(
+                f"Intento de crear cheque para depósito inexistente: {cheque_data.deposit_id}",
+                "cheque_creation_validation",
+                user_id=current_user.username,
+                request=request,
+                extra_data={"deposit_id": cheque_data.deposit_id}
+            )
+            
             raise HTTPException(
                 status_code=404,
                 detail=f"Depósito {cheque_data.deposit_id} no encontrado"
@@ -78,6 +106,23 @@ def crear_cheque(
         db.commit()
         db.refresh(cheque)
         
+        # Log de creación exitosa
+        log_user_action(
+            action="CREATE_CHEQUE_SUCCESS",
+            user_id=current_user.username,
+            resource="cheques",
+            resource_id=str(cheque.id),
+            request=request,
+            success=True,
+            extra_data={
+                "cheque_id": cheque.id,
+                "deposit_id": cheque.deposit_id,
+                "importe": cheque.importe,
+                "banco": cheque.banco,
+                "nro_cheque": cheque.nro_cheque
+            }
+        )
+        
         return {
             "success": True,
             "message": "Cheque creado exitosamente",
@@ -86,8 +131,38 @@ def crear_cheque(
             "importe": cheque.importe
         }
         
+    except HTTPException:
+        # Re-lanzar HTTPExceptions sin modificar
+        raise
     except Exception as e:
         db.rollback()
+        
+        # Log del error técnico
+        log_technical_error(
+            e,
+            "create_cheque_endpoint",
+            user_id=current_user.username,
+            request=request,
+            extra_data={
+                "deposit_id": cheque_data.deposit_id,
+                "importe": cheque_data.importe
+            }
+        )
+        
+        # Log de creación fallida
+        log_user_action(
+            action="CREATE_CHEQUE_FAILED",
+            user_id=current_user.username,
+            resource="cheques",
+            request=request,
+            success=False,
+            extra_data={
+                "deposit_id": cheque_data.deposit_id,
+                "error_type": type(e).__name__,
+                "error_message": str(e)
+            }
+        )
+        
         raise HTTPException(
             status_code=500,
             detail=f"Error al crear cheque: {str(e)}"
@@ -175,7 +250,9 @@ def actualizar_cheque(
         db.close()
 
 @router.delete("/cheques/{cheque_id}")
+@log_endpoint_access("DELETE_CHEQUE", "cheques")
 def eliminar_cheque(
+    request: Request,
     cheque_id: int,
     current_user: User = Depends(get_any_user)
 ):
@@ -184,13 +261,41 @@ def eliminar_cheque(
     try:
         cheque = db.query(Cheque).filter(Cheque.id == cheque_id).first()
         if not cheque:
+            log_technical_warning(
+                f"Intento de eliminar cheque inexistente: {cheque_id}",
+                "delete_cheque_validation",
+                user_id=current_user.username,
+                request=request,
+                extra_data={"cheque_id": cheque_id}
+            )
+            
             raise HTTPException(
                 status_code=404,
                 detail=f"Cheque {cheque_id} no encontrado"
             )
         
+        # Guardar información del cheque antes de eliminarlo para el log
+        cheque_info = {
+            "cheque_id": cheque.id,
+            "deposit_id": cheque.deposit_id,
+            "importe": cheque.importe,
+            "banco": cheque.banco,
+            "nro_cheque": cheque.nro_cheque
+        }
+        
         db.delete(cheque)
         db.commit()
+        
+        # Log de eliminación exitosa
+        log_user_action(
+            action="DELETE_CHEQUE_SUCCESS",
+            user_id=current_user.username,
+            resource="cheques",
+            resource_id=str(cheque_id),
+            request=request,
+            success=True,
+            extra_data=cheque_info
+        )
         
         return {
             "success": True,
@@ -208,16 +313,40 @@ def eliminar_cheque(
 
 # ENDPOINTS PARA RETENCIONES
 @router.post("/retenciones")
+@log_endpoint_access("CREATE_RETENCION", "retenciones")
 def crear_retencion(
+    request: Request,
     retencion_data: RetencionCreate,
     current_user: User = Depends(get_any_user)
 ):
     """Crear una nueva retención asociada a un depósito"""
     db = SessionLocal()
     try:
+        # Log del intento de creación
+        log_user_action(
+            action="ATTEMPT_CREATE_RETENCION",
+            user_id=current_user.username,
+            resource="retenciones",
+            request=request,
+            extra_data={
+                "deposit_id": retencion_data.deposit_id,
+                "importe": retencion_data.importe,
+                "concepto": retencion_data.concepto,
+                "nro_retencion": retencion_data.nro_retencion
+            }
+        )
+        
         # Verificar que el depósito existe
         deposit = db.query(Deposit).filter(Deposit.deposit_id == retencion_data.deposit_id).first()
         if not deposit:
+            log_technical_warning(
+                f"Intento de crear retención para depósito inexistente: {retencion_data.deposit_id}",
+                "retencion_creation_validation",
+                user_id=current_user.username,
+                request=request,
+                extra_data={"deposit_id": retencion_data.deposit_id}
+            )
+            
             raise HTTPException(
                 status_code=404,
                 detail=f"Depósito {retencion_data.deposit_id} no encontrado"
@@ -229,6 +358,23 @@ def crear_retencion(
         db.commit()
         db.refresh(retencion)
         
+        # Log de creación exitosa
+        log_user_action(
+            action="CREATE_RETENCION_SUCCESS",
+            user_id=current_user.username,
+            resource="retenciones",
+            resource_id=str(retencion.id),
+            request=request,
+            success=True,
+            extra_data={
+                "retencion_id": retencion.id,
+                "deposit_id": retencion.deposit_id,
+                "importe": retencion.importe,
+                "concepto": retencion.concepto,
+                "nro_retencion": retencion.nro_retencion
+            }
+        )
+        
         return {
             "success": True,
             "message": "Retención creada exitosamente",
@@ -237,8 +383,38 @@ def crear_retencion(
             "importe": retencion.importe
         }
         
+    except HTTPException:
+        # Re-lanzar HTTPExceptions sin modificar
+        raise
     except Exception as e:
         db.rollback()
+        
+        # Log del error técnico
+        log_technical_error(
+            e,
+            "create_retencion_endpoint",
+            user_id=current_user.username,
+            request=request,
+            extra_data={
+                "deposit_id": retencion_data.deposit_id,
+                "importe": retencion_data.importe
+            }
+        )
+        
+        # Log de creación fallida
+        log_user_action(
+            action="CREATE_RETENCION_FAILED",
+            user_id=current_user.username,
+            resource="retenciones",
+            request=request,
+            success=False,
+            extra_data={
+                "deposit_id": retencion_data.deposit_id,
+                "error_type": type(e).__name__,
+                "error_message": str(e)
+            }
+        )
+        
         raise HTTPException(
             status_code=500,
             detail=f"Error al crear retención: {str(e)}"

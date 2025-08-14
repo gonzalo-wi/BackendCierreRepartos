@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, status
+from fastapi import APIRouter, HTTPException, Depends, status, Request
 from fastapi.responses import JSONResponse
 from typing import List
 from models.user import User, UserRole
@@ -10,44 +10,141 @@ from schemas.auth_schemas import (
     UserListResponse, CurrentUserResponse
 )
 
+# Importar utilidades de logging
+from utils.logging_utils import log_user_action, log_technical_error, log_technical_warning
+from middleware.logging_middleware import log_endpoint_access
+
 router = APIRouter(
     prefix="/auth",
     tags=["authentication"]
 )
 
 @router.post("/login", response_model=LoginResponse)
-def login(login_data: LoginRequest):
+@log_endpoint_access("USER_LOGIN", "authentication")
+def login(request: Request, login_data: LoginRequest):
     """
     Autenticar usuario y obtener token JWT
     """
     try:
+        # Log del intento de login
+        log_user_action(
+            action="ATTEMPT_LOGIN",
+            resource="authentication",
+            request=request,
+            extra_data={
+                "username": login_data.username,
+                "attempt_time": "now"
+            }
+        )
+        
         result = auth_service.login(login_data.username, login_data.password)
+        
+        # Log de login exitoso
+        log_user_action(
+            action="LOGIN_SUCCESS",
+            user_id=login_data.username,
+            resource="authentication", 
+            request=request,
+            success=True,
+            extra_data={
+                "username": login_data.username,
+                "user_role": result.get("user", {}).get("role", "unknown")
+            }
+        )
+        
         return result
-    except HTTPException:
+        
+    except HTTPException as e:
+        # Log de login fallido
+        log_user_action(
+            action="LOGIN_FAILED",
+            resource="authentication",
+            request=request,
+            success=False,
+            extra_data={
+                "username": login_data.username,
+                "error_code": e.status_code,
+                "error_detail": str(e.detail)
+            }
+        )
+        
+        # Log técnico del error
+        log_technical_warning(
+            f"Login fallido para usuario {login_data.username}: {e.detail}",
+            "authentication_failed",
+            request=request,
+            extra_data={"username": login_data.username, "status_code": e.status_code}
+        )
         raise
+        
     except Exception as e:
+        # Log de error técnico
+        log_technical_error(
+            e,
+            "login_endpoint", 
+            request=request,
+            extra_data={"username": login_data.username}
+        )
+        
+        # Log de login fallido por error del sistema
+        log_user_action(
+            action="LOGIN_SYSTEM_ERROR", 
+            resource="authentication",
+            request=request,
+            success=False,
+            extra_data={
+                "username": login_data.username,
+                "error_type": type(e).__name__
+            }
+        )
+        
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error en el proceso de login: {str(e)}"
         )
 
 @router.get("/me", response_model=CurrentUserResponse)
-def get_current_user_info(current_user: User = Depends(get_current_user)):
+@log_endpoint_access("GET_USER_INFO", "authentication")
+def get_current_user_info(request: Request, current_user: User = Depends(get_current_user)):
     """
     Obtener información del usuario actual
     """
-    return {
-        "id": current_user.id,
-        "username": current_user.username,
-        "email": current_user.email,
-        "full_name": current_user.full_name,
-        "role": current_user.role.value,
-        "permissions": {
-            "can_view_repartos": current_user.can_view_repartos(),
-            "can_close_repartos": current_user.can_close_repartos(),
-            "can_manage_users": current_user.can_manage_users()
+    try:
+        # Log de consulta de información de usuario
+        log_user_action(
+            action="GET_USER_INFO",
+            user_id=current_user.username,
+            resource="user_profile",
+            request=request,
+            success=True,
+            extra_data={
+                "user_id": current_user.id,
+                "username": current_user.username,
+                "role": current_user.role.value
+            }
+        )
+        
+        return {
+            "id": current_user.id,
+            "username": current_user.username,
+            "email": current_user.email,
+            "full_name": current_user.full_name,
+            "role": current_user.role.value,
+            "permissions": {
+                "can_view_repartos": current_user.can_view_repartos(),
+                "can_close_repartos": current_user.can_close_repartos(),
+                "can_manage_users": current_user.can_manage_users()
+            }
         }
-    }
+        
+    except Exception as e:
+        log_technical_error(
+            e,
+            "get_user_info_endpoint",
+            user_id=current_user.username if current_user else None,
+            request=request
+        )
+        raise
 
 @router.post("/change-password", response_model=MessageResponse)
 def change_password(

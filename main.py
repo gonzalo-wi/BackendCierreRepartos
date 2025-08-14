@@ -6,6 +6,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from database import Base, engine
 
+# Importar configuración de logging
+from config.logging_config import setup_application_logging
+from middleware.logging_middleware import setup_request_logging
+
 from models.deposit import Deposit, EstadoDeposito
 from models.cheque_retencion import Cheque, Retencion
 from models.daily_totals import DailyTotal
@@ -34,7 +38,14 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Configurar CORS para permitir requests del frontend
+# ========== CONFIGURACIÓN DE LOGGING ==========
+# Inicializar sistema de logging ANTES que todo lo demás
+setup_application_logging()
+
+# Configurar middleware de logging para requests HTTP
+setup_request_logging(app)
+
+# ========== CONFIGURACIÓN DE CORS ==========
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000", "http://localhost:3001", "*"],  # Ajustar según tu frontend
@@ -43,10 +54,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Crear todas las tablas
+# ========== CONFIGURACIÓN DE BASE DE DATOS ==========
 Base.metadata.create_all(bind=engine)
 
-# Incluir routers
+# ========== CONFIGURACIÓN DE ROUTERS ==========
 app.include_router(fix_auth_router, prefix="/api")  # Router de fix auth
 app.include_router(debug_router, prefix="/api")  # Router de debug PRIMERO
 app.include_router(auth_router, prefix="/api")  # Router de autenticación PRIMERO
@@ -63,13 +74,22 @@ app.include_router(charts_router, prefix="/api")
 app.include_router(reparto_cierre_router, prefix="/api")
 app.include_router(cheques_retenciones_router, prefix="/api")
 
-
+# ========== ENDPOINT RAÍZ ==========
 @app.get("/")
 def read_root():
+    # Importar aquí para evitar import circular
+    from utils.logging_utils import log_user_action
+    import logging
+    
+    # Log de acceso al endpoint raíz
+    app_logger = logging.getLogger('app')
+    app_logger.info("Acceso al endpoint raíz de la aplicación")
+    
     return {
         "message": "Backend Cierre Repartos API",
         "version": "1.0.0",
         "status": "running",
+        "logging": "enabled",
         "endpoints": {
             "auth": "/api/auth/*",
             "admin-users": "/api/admin/users/*",
