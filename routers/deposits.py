@@ -509,9 +509,9 @@ class EliminarMovimiento(BaseModel):
     id: int    # ID del movimiento a eliminar
 
 # Endpoint alternativo más flexible - eliminar por número de cheque/retención
-@router.delete("/{deposit_id}/cheques/{numero_cheque}")
-def delete_cheque_by_numero(deposit_id: str, numero_cheque: str):
-    """Elimina un cheque específico por su número"""
+@router.delete("/{deposit_id}/cheques/{cheque_identifier}")
+def delete_cheque_by_identifier(deposit_id: str, cheque_identifier: str):
+    """Elimina un cheque específico por ID o número de cheque"""
     from database import SessionLocal
     from models.deposit import Deposit
     from models.cheque_retencion import Cheque
@@ -524,27 +524,41 @@ def delete_cheque_by_numero(deposit_id: str, numero_cheque: str):
         if not deposit:
             raise HTTPException(status_code=404, detail="Depósito no encontrado")
         
-        # Buscar y eliminar el cheque por número
-        cheque = db.query(Cheque).filter(
-            Cheque.nro_cheque == numero_cheque,
-            Cheque.deposit_id == deposit_id
-        ).first()
+        cheque = None
+        
+        # Intentar buscar por ID primero (si es numérico)
+        if cheque_identifier.isdigit():
+            cheque_id = int(cheque_identifier)
+            cheque = db.query(Cheque).filter(
+                Cheque.id == cheque_id,
+                Cheque.deposit_id == deposit_id
+            ).first()
+        
+        # Si no se encontró por ID, buscar por número de cheque
+        if not cheque:
+            cheque = db.query(Cheque).filter(
+                Cheque.nro_cheque == cheque_identifier,
+                Cheque.deposit_id == deposit_id
+            ).first()
         
         if not cheque:
-            raise HTTPException(status_code=404, detail=f"Cheque número {numero_cheque} no encontrado")
+            raise HTTPException(status_code=404, detail=f"Cheque {cheque_identifier} no encontrado")
         
         importe = cheque.importe
         cheque_id = cheque.id
+        nro_cheque = cheque.nro_cheque
+        
         db.delete(cheque)
         db.commit()
         
         return {
             "success": True,
-            "message": f"Cheque número {numero_cheque} eliminado exitosamente",
+            "message": f"Cheque eliminado exitosamente",
             "tipo": "cheque",
-            "numero": numero_cheque,
+            "numero": nro_cheque,
             "id": cheque_id,
-            "importe": importe
+            "importe": importe,
+            "searched_by": cheque_identifier
         }
     except HTTPException:
         db.rollback()
@@ -555,9 +569,9 @@ def delete_cheque_by_numero(deposit_id: str, numero_cheque: str):
     finally:
         db.close()
 
-@router.delete("/{deposit_id}/retenciones/{numero_retencion}")
-def delete_retencion_by_numero(deposit_id: str, numero_retencion: str):
-    """Elimina una retención específica por su número"""
+@router.delete("/{deposit_id}/retenciones/{retencion_identifier}")
+def delete_retencion_by_identifier(deposit_id: str, retencion_identifier: str):
+    """Elimina una retención específica por ID o número de retención"""
     from database import SessionLocal
     from models.deposit import Deposit
     from models.cheque_retencion import Retencion
@@ -570,27 +584,42 @@ def delete_retencion_by_numero(deposit_id: str, numero_retencion: str):
         if not deposit:
             raise HTTPException(status_code=404, detail="Depósito no encontrado")
         
-        # Buscar y eliminar la retención por número
-        retencion = db.query(Retencion).filter(
-            Retencion.nro_retencion == numero_retencion,
-            Retencion.deposit_id == deposit_id
-        ).first()
+        retencion = None
+        
+        # Intentar buscar por ID primero (si es numérico)
+        if retencion_identifier.isdigit():
+            retencion_id = int(retencion_identifier)
+            retencion = db.query(Retencion).filter(
+                Retencion.id == retencion_id,
+                Retencion.deposit_id == deposit_id
+            ).first()
+        
+        # Si no se encontró por ID, buscar por número de retención (si es numérico)
+        if not retencion and retencion_identifier.isdigit():
+            numero_retencion = int(retencion_identifier)
+            retencion = db.query(Retencion).filter(
+                Retencion.nro_retencion == numero_retencion,
+                Retencion.deposit_id == deposit_id
+            ).first()
         
         if not retencion:
-            raise HTTPException(status_code=404, detail=f"Retención número {numero_retencion} no encontrada")
+            raise HTTPException(status_code=404, detail=f"Retención {retencion_identifier} no encontrada")
         
         importe = retencion.importe
         retencion_id = retencion.id
+        nro_retencion = retencion.nro_retencion
+        
         db.delete(retencion)
         db.commit()
         
         return {
             "success": True,
-            "message": f"Retención número {numero_retencion} eliminada exitosamente",
+            "message": f"Retención eliminada exitosamente",
             "tipo": "retencion",
-            "numero": numero_retencion,
+            "numero": nro_retencion,
             "id": retencion_id,
-            "importe": importe
+            "importe": importe,
+            "searched_by": retencion_identifier
         }
     except HTTPException:
         db.rollback()

@@ -100,6 +100,15 @@ def crear_cheque(
                 detail=f"Depósito {cheque_data.deposit_id} no encontrado"
             )
         
+        # Convertir fecha si es necesario (de YYYY-MM-DD a dd/MM/yyyy)
+        if cheque_data.fecha and "-" in cheque_data.fecha and len(cheque_data.fecha) == 10:
+            try:
+                fecha_obj = datetime.strptime(cheque_data.fecha, "%Y-%m-%d")
+                cheque_data.fecha = fecha_obj.strftime("%d/%m/%Y")
+            except ValueError:
+                # Si falla, mantener el valor original
+                pass
+        
         # Crear el cheque
         cheque = Cheque(**cheque_data.dict())
         db.add(cheque)
@@ -229,6 +238,17 @@ def actualizar_cheque(
         
         # Actualizar solo los campos proporcionados
         for field, value in cheque_data.dict(exclude_unset=True).items():
+            # Conversión especial para fechas
+            if field == "fecha" and value:
+                # Convertir de YYYY-MM-DD a dd/MM/yyyy si es necesario
+                if "-" in value and len(value) == 10:
+                    try:
+                        fecha_obj = datetime.strptime(value, "%Y-%m-%d")
+                        value = fecha_obj.strftime("%d/%m/%Y")
+                    except ValueError:
+                        # Si falla, mantener el valor original
+                        pass
+            
             setattr(cheque, field, value)
         
         db.commit()
@@ -249,29 +269,39 @@ def actualizar_cheque(
     finally:
         db.close()
 
-@router.delete("/cheques/{cheque_id}")
+@router.delete("/cheques/{cheque_identifier}")
 @log_endpoint_access("DELETE_CHEQUE", "cheques")
 def eliminar_cheque(
     request: Request,
-    cheque_id: int,
+    cheque_identifier: str,
     current_user: User = Depends(get_any_user)
 ):
-    """Eliminar un cheque"""
+    """Eliminar un cheque por ID o número de cheque"""
     db = SessionLocal()
     try:
-        cheque = db.query(Cheque).filter(Cheque.id == cheque_id).first()
+        cheque = None
+        
+        # Intentar buscar por ID primero (si es numérico)
+        if cheque_identifier.isdigit():
+            cheque_id = int(cheque_identifier)
+            cheque = db.query(Cheque).filter(Cheque.id == cheque_id).first()
+        
+        # Si no se encontró por ID, buscar por número de cheque
+        if not cheque:
+            cheque = db.query(Cheque).filter(Cheque.nro_cheque == cheque_identifier).first()
+        
         if not cheque:
             log_technical_warning(
-                f"Intento de eliminar cheque inexistente: {cheque_id}",
+                f"Intento de eliminar cheque inexistente: {cheque_identifier}",
                 "delete_cheque_validation",
                 user_id=current_user.username,
                 request=request,
-                extra_data={"cheque_id": cheque_id}
+                extra_data={"cheque_identifier": cheque_identifier}
             )
             
             raise HTTPException(
                 status_code=404,
-                detail=f"Cheque {cheque_id} no encontrado"
+                detail=f"Cheque {cheque_identifier} no encontrado"
             )
         
         # Guardar información del cheque antes de eliminarlo para el log
@@ -280,7 +310,8 @@ def eliminar_cheque(
             "deposit_id": cheque.deposit_id,
             "importe": cheque.importe,
             "banco": cheque.banco,
-            "nro_cheque": cheque.nro_cheque
+            "nro_cheque": cheque.nro_cheque,
+            "searched_by": cheque_identifier
         }
         
         db.delete(cheque)
@@ -291,7 +322,7 @@ def eliminar_cheque(
             action="DELETE_CHEQUE_SUCCESS",
             user_id=current_user.username,
             resource="cheques",
-            resource_id=str(cheque_id),
+            resource_id=str(cheque.id),
             request=request,
             success=True,
             extra_data=cheque_info
@@ -496,27 +527,48 @@ def actualizar_retencion(
     finally:
         db.close()
 
-@router.delete("/retenciones/{retencion_id}")
+@router.delete("/retenciones/{retencion_identifier}")
 def eliminar_retencion(
-    retencion_id: int,
+    retencion_identifier: str,
     current_user: User = Depends(get_any_user)
 ):
-    """Eliminar una retención"""
+    """Eliminar una retención por ID o número de retención"""
     db = SessionLocal()
     try:
-        retencion = db.query(Retencion).filter(Retencion.id == retencion_id).first()
+        retencion = None
+        
+        # Intentar buscar por ID primero (si es numérico)
+        if retencion_identifier.isdigit():
+            retencion_id = int(retencion_identifier)
+            retencion = db.query(Retencion).filter(Retencion.id == retencion_id).first()
+        
+        # Si no se encontró por ID, buscar por número de retención
+        if not retencion and retencion_identifier.isdigit():
+            nro_retencion = int(retencion_identifier)
+            retencion = db.query(Retencion).filter(Retencion.nro_retencion == nro_retencion).first()
+        
         if not retencion:
             raise HTTPException(
                 status_code=404,
-                detail=f"Retención {retencion_id} no encontrada"
+                detail=f"Retención número {retencion_identifier} no encontrada"
             )
+        
+        # Guardar información de la retención antes de eliminarla para el log
+        retencion_info = {
+            "retencion_id": retencion.id,
+            "deposit_id": retencion.deposit_id,
+            "importe": retencion.importe,
+            "nro_retencion": retencion.nro_retencion,
+            "searched_by": retencion_identifier
+        }
         
         db.delete(retencion)
         db.commit()
         
         return {
             "success": True,
-            "message": "Retención eliminada exitosamente"
+            "message": "Retención eliminada exitosamente",
+            "retencion_info": retencion_info
         }
         
     except Exception as e:

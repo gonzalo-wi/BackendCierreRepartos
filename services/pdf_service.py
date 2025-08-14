@@ -195,15 +195,24 @@ def generate_daily_closure_pdf(totals_data, date):
     story.append(Paragraph(f"Fecha: {formatted_date}", subtitle_style))
     story.append(Spacer(1, 20))
     
-    # Información de la empresa
-    story.append(Paragraph("JUMILLANO - SISTEMA DE DEPÓSITOS", normal_style))
+    # Información de la empresa (estilo más prominente)
+    company_style = ParagraphStyle(
+        'CompanyStyle',
+        parent=styles['Normal'],
+        fontSize=14,
+        spaceAfter=12,
+        alignment=TA_CENTER,
+        textColor=colors.darkblue,
+        fontName='Helvetica-Bold'
+    )
+    story.append(Paragraph("EL JUMILLANO - PAC", company_style))
     story.append(Spacer(1, 20))
     
     # Crear tabla de resumen con cheques y retenciones
     data = [
         ['UBICACIÓN', 'EFECTIVO', 'CHEQUES', 'RETENCIONES', 'TOTAL', 'ESTADO'],
         ['', '', '', '', '', ''],
-        ['Jumillano', 
+        ['CIUDADELA', 
          f"$ {format_currency(totals_data['jumillano_total'])}", 
          f"$ {format_currency(jumillano_cr['cheques'])}", 
          f"$ {format_currency(jumillano_cr['retenciones'])}", 
@@ -355,6 +364,11 @@ def generate_detailed_repartos_pdf(repartos_data, date):
     # Título
     title = Paragraph("REPORTE DETALLADO DE REPARTOS", title_style)
     story.append(title)
+    story.append(Spacer(1, 12))
+    
+    # Información de la empresa
+    story.append(Paragraph("EL JUMILLANO - PAC", normal_style))
+    story.append(Spacer(1, 20))
     
     # Fecha - Detectar formato automáticamente
     try:
@@ -379,9 +393,9 @@ def generate_detailed_repartos_pdf(repartos_data, date):
     
     # Procesar datos por planta
     plantas = {
-        'jumillano': {'title': 'JUMILLANO (Máquinas L-EJU-001 y L-EJU-002)', 'repartos': []},
+        'jumillano': {'title': 'CIUDADELA (Máquinas L-EJU-001 y L-EJU-002)', 'repartos': []},
         'plata': {'title': 'LA PLATA (Máquina L-EJU-003)', 'repartos': []},
-        'nafa': {'title': 'NAFA (Máquina L-EJU-004)', 'repartos': []}
+        'nafa': {'title': 'LOMAS DE ZAMORA (Máquina L-EJU-004)', 'repartos': []}
     }
     
     # Organizar repartos por planta

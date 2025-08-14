@@ -4,7 +4,7 @@ from sqlalchemy.orm import relationship
 from database import Base
 import enum
 
-TOLERANCE_DIFFERENCE = 0.05
+TOLERANCE_DIFFERENCE = 10000
 
 class EstadoDeposito(enum.Enum):
     PENDIENTE = "PENDIENTE"
@@ -53,9 +53,16 @@ class Deposit(Base):
         if self.deposit_esperado is None or self.deposit_esperado == 0:
             self.estado = EstadoDeposito.PENDIENTE
         else:
-            diferencia = abs(self.total_amount - self.deposit_esperado)
-            porcentaje = diferencia / self.deposit_esperado
-        if porcentaje <= TOLERANCE_DIFFERENCE:
-            self.estado = EstadoDeposito.LISTO
-        else:
-            self.estado = EstadoDeposito.PENDIENTE
+            # Diferencia = monto_real - monto_esperado
+            # Positivo = sobra dinero, Negativo = falta dinero
+            diferencia = self.total_amount - self.deposit_esperado
+            
+            # Si falta dinero (diferencia negativa) y el faltante es >= 10000
+            if diferencia < 0 and abs(diferencia) >= TOLERANCE_DIFFERENCE:
+                self.estado = EstadoDeposito.PENDIENTE
+            else:
+                # En todos los demás casos está LISTO:
+                # - Si sobra dinero (cualquier cantidad)
+                # - Si falta dinero pero menos de 10000
+                # - Si está exacto (diferencia = 0)
+                self.estado = EstadoDeposito.LISTO
