@@ -30,7 +30,7 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
             detail="Usuario no encontrado",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

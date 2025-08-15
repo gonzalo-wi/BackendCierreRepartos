@@ -15,17 +15,17 @@ class Deposit(Base):
     __tablename__ = "deposits"
 
     id = Column(Integer, primary_key=True, index=True)
-    deposit_id       = Column(String, unique=True, index=True)
-    identifier       = Column(String)
-    user_name        = Column(String)
+    deposit_id       = Column(String(255), unique=True, index=True)
+    identifier       = Column(String(255))
+    user_name        = Column(String(255))
     total_amount     = Column(Integer)
     deposit_esperado = Column(Integer, nullable=True)  # Nuevo campo
-    composicion_esperado = Column(String, nullable=True)  # Composición E/C/R
-    currency_code    = Column(String)
-    deposit_type     = Column(String)
+    composicion_esperado = Column(String(50), nullable=True)  # Composición E/C/R
+    currency_code    = Column(String(10))
+    deposit_type     = Column(String(100))
     date_time        = Column(DateTime)
-    pos_name         = Column(String)
-    st_name          = Column(String)
+    pos_name         = Column(String(255))
+    st_name          = Column(String(255))
     estado           = Column(Enum(EstadoDeposito), default=EstadoDeposito.PENDIENTE)
     fecha_envio      = Column(DateTime, nullable=True)  # Fecha cuando se envió el reparto
 

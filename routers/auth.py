@@ -20,7 +20,6 @@ router = APIRouter(
 )
 
 @router.post("/login", response_model=LoginResponse)
-@log_endpoint_access("USER_LOGIN", "authentication")
 def login(request: Request, login_data: LoginRequest):
     """
     Autenticar usuario y obtener token JWT

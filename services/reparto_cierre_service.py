@@ -4,7 +4,7 @@ import os
 from datetime import datetime
 from typing import List, Dict, Optional
 from database import SessionLocal
-from models.deposit import Deposit
+from models.deposit import Deposit, EstadoDeposito
 from models.cheque_retencion import Cheque, Retencion
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import func
@@ -36,8 +36,8 @@ class RepartoCierreService:
         """
         db = SessionLocal()
         try:
-            # Construir query base
-            query = db.query(Deposit).filter(Deposit.estado == "LISTO")
+            # Construir query base (usar Enum, no string)
+            query = db.query(Deposit).filter(Deposit.estado == EstadoDeposito.LISTO)
             
             # Si se especifica una fecha, filtrar por ese día
             if fecha_especifica:
@@ -172,26 +172,23 @@ class RepartoCierreService:
     
     def _format_cheque(self, cheque: Cheque) -> Dict:
         """
-        Formatea un cheque para el envío SOAP
+        Formatea un cheque para el envío SOAP (lógica simple legada: acepta YYYY-MM-DD o dd/MM/YYYY; fallback fecha actual).
         """
-        # Formatear fecha correctamente - siempre en formato dd/MM/yyyy
         fecha_formateada = datetime.now().strftime("%d/%m/%Y")
         if cheque.fecha:
             if isinstance(cheque.fecha, str):
+                # Intentar formato ISO corto primero
                 try:
-                    # Si es string, intentar parsearlo y reformatearlo
                     fecha_obj = datetime.strptime(cheque.fecha, "%Y-%m-%d")
                     fecha_formateada = fecha_obj.strftime("%d/%m/%Y")
                 except ValueError:
                     try:
-                        # Intentar otro formato común
+                        # Si ya viene en formato correcto lo dejamos
                         fecha_obj = datetime.strptime(cheque.fecha, "%d/%m/%Y")
-                        fecha_formateada = cheque.fecha  # Ya está en formato correcto
+                        fecha_formateada = cheque.fecha
                     except ValueError:
-                        # Si no se puede parsear, usar fecha actual
                         fecha_formateada = datetime.now().strftime("%d/%m/%Y")
             elif hasattr(cheque.fecha, 'strftime'):
-                # Si es datetime object
                 fecha_formateada = cheque.fecha.strftime("%d/%m/%Y")
         
         return {
@@ -209,28 +206,23 @@ class RepartoCierreService:
     
     def _format_retencion(self, retencion: Retencion) -> Dict:
         """
-        Formatea una retención para el envío SOAP
+        Formatea una retención para el envío SOAP (lógica simple legada: acepta YYYY-MM-DD o dd/MM/YYYY; fallback fecha actual).
         """
-        # Formatear fecha correctamente - siempre en formato dd/MM/yyyy
         fecha_formateada = datetime.now().strftime("%d/%m/%Y")
         if retencion.fecha:
             if isinstance(retencion.fecha, str):
                 try:
-                    # Si es string, intentar parsearlo y reformatearlo
                     fecha_obj = datetime.strptime(retencion.fecha, "%Y-%m-%d")
                     fecha_formateada = fecha_obj.strftime("%d/%m/%Y")
                 except ValueError:
                     try:
-                        # Intentar otro formato común
                         fecha_obj = datetime.strptime(retencion.fecha, "%d/%m/%Y")
-                        fecha_formateada = retencion.fecha  # Ya está en formato correcto
+                        fecha_formateada = retencion.fecha
                     except ValueError:
-                        # Si no se puede parsear, usar fecha actual
                         fecha_formateada = datetime.now().strftime("%d/%m/%Y")
             elif hasattr(retencion.fecha, 'strftime'):
-                # Si es datetime object
                 fecha_formateada = retencion.fecha.strftime("%d/%m/%Y")
-        
+
         return {
             "nrocta": retencion.nrocta or 1,
             "concepto": retencion.concepto or "RIB",
@@ -268,22 +260,22 @@ class RepartoCierreService:
         logging.debug(f"📋 SOAP Envelope generado para idreparto {reparto_data['idreparto']}")
         return soap_envelope
     
-    def enviar_reparto(self, reparto_data: Dict) -> Dict:
+    def enviar_reparto(self, reparto_data: Dict, force_production: Optional[bool] = None) -> Dict:
         """
         Envía un reparto individual a la API SOAP
         """
         try:
             soap_envelope = self._build_soap_envelope(reparto_data)
+            use_production = self.production_mode if force_production is None else bool(force_production)
             
             headers = {
                 'Content-Type': 'application/soap+xml; charset=utf-8',
                 'SOAPAction': f'{self.soap_namespace}reparto_cerrar',
-                'Host': '192.168.0.8',
-                'Content-Length': str(len(soap_envelope))
             }
             
             logging.info(f"🔄 Enviando reparto ID: {reparto_data['idreparto']} (Planta: {reparto_data['planta']})")
             logging.info(f"📦 Efectivo: ${reparto_data['efectivo_importe']}, Cheques: {len(reparto_data['cheques'])}, Retenciones: {len(reparto_data['retenciones'])}")
+            logging.info(f"🛰️ Modo de envío: {'PRODUCCIÓN' if use_production else 'DESARROLLO (simulado)'} | production_mode={self.production_mode} | override={force_production}")
             
             # LOGGING TEMPORAL PARA DEBUG - Ver qué datos se están enviando
             if reparto_data['cheques']:
@@ -298,7 +290,7 @@ class RepartoCierreService:
             logging.info(f"📋 XML SOAP completo:\n{soap_envelope}")
             logging.info("=" * 80)
             
-            if self.production_mode:
+            if use_production:
                 # MODO PRODUCCIÓN - Envío real a la API
                 logging.info("🚀 MODO PRODUCCIÓN - Enviando a API real")
                 response = requests.post(
@@ -316,26 +308,40 @@ class RepartoCierreService:
                 logging.warning("⚠️ MODO DESARROLLO - Simulando envío (no se envía a producción)")
                 logging.info(f"🔍 SOAP Envelope que se enviaría:\n{soap_envelope}")
                 
-                # Crear respuesta simulada
-                response = type('Response', (), {
-                    'status_code': 200,
-                    'text': f'''<?xml version="1.0" encoding="utf-8"?>
-<soap12:Envelope xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
-  <soap12:Body>
-    <reparto_cerrarResponse xmlns="http://airtech-it.com.ar/">
-      <reparto_cerrarResult>OK - SIMULADO</reparto_cerrarResult>
-    </reparto_cerrarResponse>
-  </soap12:Body>
-</soap12:Envelope>''',
-                    'raise_for_status': lambda: None
-                })()
+                # Crear respuesta simulada robusta
+                class SimulatedResponse:
+                    def __init__(self):
+                        self.status_code = 200
+                        self.text = (
+                            """<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"""
+                            "<soap12:Envelope xmlns:soap12=\"http://www.w3.org/2003/05/soap-envelope\">\n"
+                            "  <soap12:Body>\n"
+                            "    <reparto_cerrarResponse xmlns=\"http://airtech-it.com.ar/\">\n"
+                            "      <reparto_cerrarResult>OK - SIMULADO</reparto_cerrarResult>\n"
+                            "    </reparto_cerrarResponse>\n"
+                            "  </soap12:Body>\n"
+                            "</soap12:Envelope>"
+                        )
+                        # Headers mínimos simulados
+                        self.headers = {
+                            'Content-Type': 'application/soap+xml; charset=utf-8',
+                            'X-Simulated': 'true'
+                        }
+                    def raise_for_status(self):
+                        # No hace nada porque siempre status_code 200
+                        return None
+                response = SimulatedResponse()
             
             response.raise_for_status()
             
             # Logging detallado de la respuesta para debug
             logging.info(f"📡 Respuesta completa del servidor:")
             logging.info(f"📡 Status: {response.status_code}")
-            logging.info(f"📡 Headers: {dict(response.headers)}")
+            if hasattr(response, 'headers'):
+                try:
+                    logging.info(f"📡 Headers: {dict(response.headers)}")
+                except Exception:
+                    logging.info("📡 Headers: <no disponibles>")
             logging.info(f"📡 Contenido (primeros 1000 chars): {response.text[:1000]}")
             
             # Parsear respuesta XML
@@ -351,7 +357,7 @@ class RepartoCierreService:
                             "success": True,
                             "idreparto": reparto_data["idreparto"],
                             "response": "OK - Respuesta no XML pero status 200",
-                            "production_mode": self.production_mode,
+                            "production_mode": use_production,
                             "timestamp": datetime.now().isoformat(),
                             "raw_response": xml_content[:500]
                         }
@@ -371,14 +377,14 @@ class RepartoCierreService:
                 else:
                     result = "OK"  
                     
-                modo = "PRODUCCIÓN" if self.production_mode else "DESARROLLO"
+                modo = "PRODUCCIÓN" if use_production else "DESARROLLO"
                 logging.info(f"✅ Reparto {reparto_data['idreparto']} enviado exitosamente ({modo}): {result}")
                 
                 return {
                     "success": True,
                     "idreparto": reparto_data["idreparto"],
                     "response": result,
-                    "production_mode": self.production_mode,
+                    "production_mode": use_production,
                     "timestamp": datetime.now().isoformat()
                 }
                 
@@ -393,7 +399,7 @@ class RepartoCierreService:
                         "success": True,
                         "idreparto": reparto_data["idreparto"],
                         "response": "OK - XML malformado pero status 200",
-                        "production_mode": self.production_mode,
+                        "production_mode": use_production,
                         "timestamp": datetime.now().isoformat(),
                         "xml_error": str(e),
                         "raw_response": response.text[:500]
@@ -445,7 +451,7 @@ class RepartoCierreService:
         finally:
             db.close()
     
-    def procesar_cola_repartos(self, fecha_especifica: Optional[datetime] = None, max_reintentos: int = 3, delay_entre_envios: float = 1.0) -> Dict:
+    def procesar_cola_repartos(self, fecha_especifica: Optional[datetime] = None, max_reintentos: int = 3, delay_entre_envios: float = 1.0, force_production: Optional[bool] = None) -> Dict:
         """
         Procesa la cola completa de repartos listos para enviar
         Si se especifica fecha_especifica, solo procesa los repartos de ese día
@@ -477,7 +483,7 @@ class RepartoCierreService:
             # Intentar envío con reintentos
             resultado = None
             for intento in range(max_reintentos):
-                resultado = self.enviar_reparto(reparto)
+                resultado = self.enviar_reparto(reparto, force_production=force_production)
                 
                 if resultado["success"]:
                     enviados += 1
@@ -571,6 +577,48 @@ class RepartoCierreService:
         except Exception as e:
             print(f"Error al obtener resumen por fechas: {e}")
             return {"total_fechas": 0, "total_repartos_listos": 0, "fechas": []}
+        finally:
+            db.close()
+
+    def revertir_enviados(self, fecha_especifica: Optional[datetime] = None, idreparto: Optional[int] = None) -> Dict:
+        """
+        Revierte depósitos ENVIADO a LISTO para una fecha específica o un idreparto.
+        Si se proveen ambos, aplica la intersección.
+        """
+        db = SessionLocal()
+        try:
+            from services.repartos_api_service import extraer_idreparto_de_user_name
+
+            query = db.query(Deposit).filter(Deposit.estado == EstadoDeposito.ENVIADO)
+
+            if fecha_especifica:
+                inicio = fecha_especifica.replace(hour=0, minute=0, second=0, microsecond=0)
+                fin = inicio.replace(hour=23, minute=59, second=59, microsecond=999999)
+                query = query.filter(Deposit.date_time >= inicio, Deposit.date_time <= fin)
+
+            candidatos = query.all()
+
+            actualizados = 0
+            for dep in candidatos:
+                if idreparto is not None:
+                    rid = extraer_idreparto_de_user_name(dep.user_name)
+                    if rid != idreparto:
+                        continue
+                dep.estado = EstadoDeposito.LISTO
+                dep.fecha_envio = None
+                actualizados += 1
+
+            db.commit()
+
+            logging.info(f"↩️ Revertidos {actualizados} depósitos ENVIADO -> LISTO" + (
+                f" para fecha {fecha_especifica.strftime('%Y-%m-%d')}" if fecha_especifica else "") + (
+                f" y idreparto {idreparto}" if idreparto is not None else ""))
+
+            return {"success": True, "revertidos": actualizados}
+        except Exception as e:
+            logging.error(f"❌ Error revirtiendo estados: {str(e)}")
+            db.rollback()
+            return {"success": False, "error": str(e)}
         finally:
             db.close()
 

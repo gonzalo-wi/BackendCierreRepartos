@@ -7,9 +7,9 @@ class DailyTotal(Base):
     __tablename__ = "daily_totals"
     
     id = Column(Integer, primary_key=True, index=True)
-    date = Column(String, nullable=False)  # Formato YYYY-MM-DD
-    plant = Column(String, nullable=False)  # 'jumillano', 'plata', 'nafa', 'total'
-    machine = Column(String, nullable=True)  # L-EJU-001, L-EJU-002, etc. (null para totales por planta)
+    date = Column(String(10), nullable=False)  # Formato YYYY-MM-DD
+    plant = Column(String(50), nullable=False)  # 'jumillano', 'plata', 'nafa', 'total'
+    machine = Column(String(20), nullable=True)  # L-EJU-001, L-EJU-002, etc. (null para totales por planta)
     total_amount = Column(Float, default=0.0)
     deposit_count = Column(Integer, default=0)
     created_at = Column(DateTime, default=datetime.utcnow)

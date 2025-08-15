@@ -17,7 +17,7 @@ class AuthService:
     def __init__(self):
         self.secret_key = os.getenv("JWT_SECRET_KEY", "tu_clave_secreta_super_segura_aqui_2025")
         self.algorithm = "HS256"
-        self.access_token_expire_minutes = 120  # 2 horas
+        self.access_token_expire_minutes = 480  # 8 horas
         
     def create_access_token(self, data: Dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:
         """Crea un token JWT"""
@@ -42,7 +42,7 @@ class AuthService:
                 detail="Token expirado",
                 headers={"WWW-Authenticate": "Bearer"},
             )
-        except (DecodeError, InvalidTokenError):
+        except (DecodeError, InvalidTokenError) as e:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Token inválido",
@@ -62,6 +62,10 @@ class AuthService:
                 # Actualizar último login
                 user.last_login = datetime.utcnow()
                 db.commit()
+                
+                # Hacer refresh para cargar todos los atributos antes de retornar
+                db.refresh(user)
+                
                 return user
             return None
         finally:
@@ -123,6 +127,9 @@ class AuthService:
                 headers={"WWW-Authenticate": "Bearer"},
             )
         
+        # Serializar datos del usuario DENTRO de la sesión
+        user_data = user.to_dict()
+        
         # Crear token
         access_token_expires = timedelta(minutes=self.access_token_expire_minutes)
         access_token = self.create_access_token(
@@ -139,7 +146,7 @@ class AuthService:
             "access_token": access_token,
             "token_type": "bearer",
             "expires_in": self.access_token_expire_minutes * 60,
-            "user": user.to_dict()
+            "user": user_data
         }
     
     def get_all_users(self) -> list[User]:

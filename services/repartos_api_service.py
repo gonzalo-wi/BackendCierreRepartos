@@ -117,7 +117,8 @@ def actualizar_depositos_esperados(fecha_str: str) -> Dict:
     """
     from database import SessionLocal
     from models.deposit import Deposit
-    from sqlalchemy import and_, func
+    from sqlalchemy import and_, func, text
+    from sqlalchemy.types import Date
     from datetime import datetime as dt
     
     try:
@@ -141,8 +142,9 @@ def actualizar_depositos_esperados(fecha_str: str) -> Dict:
         query_date = fecha_obj.date()
         
         # Obtener depósitos de la fecha especificada
+        # Compatibilidad SQL Server: usar CAST(datetime AS date)
         deposits = db.query(Deposit).filter(
-            func.date(Deposit.date_time) == query_date
+            func.cast(Deposit.date_time, Date) == query_date
         ).all()
         
         actualizados = 0

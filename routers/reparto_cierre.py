@@ -16,7 +16,11 @@ class CierreConfigModel(BaseModel):
     fecha_especifica: Optional[str] = None  # Formato: "YYYY-MM-DD"
     max_reintentos: Optional[int] = 3
     delay_entre_envios: Optional[float] = 1.0
-    modo_test: Optional[bool] = True
+    modo_test: Optional[bool] = False  # por defecto, envío real (producción)
+
+class RevertirConfigModel(BaseModel):
+    fecha_especifica: Optional[str] = None  # YYYY-MM-DD
+    idreparto: Optional[int] = None
 
 # Instancia del servicio
 cierre_service = RepartoCierreService()
@@ -83,27 +87,25 @@ def cerrar_repartos(
             try:
                 fecha_obj = datetime.strptime(config.fecha_especifica, "%Y-%m-%d")
             except ValueError:
-                raise HTTPException(
-                    status_code=400,
-                    detail="Formato de fecha inválido. Use YYYY-MM-DD"
-                )
-        
+                raise HTTPException(status_code=400, detail="Formato de fecha inválido. Use YYYY-MM-DD")
+
         fecha_str = config.fecha_especifica or "todos los días"
-        print(f"🎬 Iniciando cierre de repartos con configuración:")
+        print("🎬 Iniciando cierre de repartos con configuración:")
         print(f"   - Usuario: {current_user.username} ({current_user.role.value})")
         print(f"   - Fecha: {fecha_str}")
         print(f"   - Max reintentos: {config.max_reintentos}")
         print(f"   - Delay entre envíos: {config.delay_entre_envios}s")
-        print(f"   - Modo test: {config.modo_test}")
-        
+        # Forzar producción siempre para permitir pruebas desde el front
+        force_production_override = True
+        print(f"   - Modo test (solicitado): {config.modo_test}")
+        print("   - Modo test (efectivo): False — envío REAL forzado")
+
         # Verificar si hay repartos listos antes de procesar
         repartos_listos = cierre_service.get_repartos_listos(fecha_obj)
-        
         if not repartos_listos:
             mensaje = "No hay repartos listos para enviar"
             if config.fecha_especifica:
                 mensaje += f" para la fecha {config.fecha_especifica}"
-            
             return {
                 "success": True,
                 "message": mensaje,
@@ -112,33 +114,58 @@ def cerrar_repartos(
                 "enviados": 0,
                 "errores": 0
             }
-        
+
         # Procesar la cola
         resultado = cierre_service.procesar_cola_repartos(
             fecha_especifica=fecha_obj,
             max_reintentos=config.max_reintentos,
-            delay_entre_envios=config.delay_entre_envios
+            delay_entre_envios=config.delay_entre_envios,
+            force_production=force_production_override
         )
-        
+
         # Agregar información de fecha al resultado
         resultado["fecha_procesada"] = config.fecha_especifica
-        
+
         # Determinar código de respuesta HTTP según el resultado
         status_code = 200 if resultado["success"] else 207  # 207 = Multi-Status
-        
-        return JSONResponse(
-            status_code=status_code,
-            content=resultado
-        )
-        
+
+        return JSONResponse(status_code=status_code, content={**resultado, "forced_production": True})
     except HTTPException:
         raise
     except Exception as e:
         print(f"💥 Error crítico en cierre de repartos: {e}")
-        raise HTTPException(
-            status_code=500, 
-            detail=f"Error al procesar cierre de repartos: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Error al procesar cierre de repartos: {str(e)}")
+
+@router.post("/revertir-enviados")
+def revertir_enviados(
+    config: RevertirConfigModel = RevertirConfigModel(),
+    current_user: User = Depends(get_admin_user)
+):
+    """
+    Revierte depósitos ENVIADO -> LISTO por fecha (YYYY-MM-DD) y/o idreparto.
+    Útil para reintentar el envío real inmediatamente.
+    """
+    try:
+        fecha_obj = None
+        if config.fecha_especifica:
+            try:
+                fecha_obj = datetime.strptime(config.fecha_especifica, "%Y-%m-%d")
+            except ValueError:
+                raise HTTPException(status_code=400, detail="Formato de fecha inválido. Use YYYY-MM-DD")
+
+        resultado = cierre_service.revertir_enviados(fecha_obj, config.idreparto)
+        if not resultado.get("success"):
+            raise HTTPException(status_code=500, detail=resultado.get("error", "Error desconocido"))
+        return {
+            "success": True,
+            "revertidos": resultado.get("revertidos", 0),
+            "fecha": config.fecha_especifica,
+            "idreparto": config.idreparto
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al revertir estados: {str(e)}")
 
 @router.post("/cerrar-repartos-async")
 def cerrar_repartos_async(
@@ -163,10 +190,13 @@ def cerrar_repartos_async(
             }
         
         # Agregar tarea al background
+        # Forzar producción siempre
         background_tasks.add_task(
             cierre_service.procesar_cola_repartos,
+            None,  # fecha_especifica
             config.max_reintentos,
-            config.delay_entre_envios
+            config.delay_entre_envios,
+            True
         )
         
         return {
@@ -174,6 +204,7 @@ def cerrar_repartos_async(
             "message": f"Proceso de cierre iniciado en background para {len(repartos_listos)} repartos",
             "total_repartos": len(repartos_listos),
             "task_started": True,
+            "forced_production": True,
             "note": "El proceso se ejecutará en segundo plano. Consulte los logs del servidor para seguir el progreso."
         }
         
@@ -274,7 +305,7 @@ def cerrar_repartos_test(
             fecha_especifica=fecha_obj,
             max_reintentos=config.max_reintentos or 3,
             delay_entre_envios=config.delay_entre_envios or 1.0,
-            modo_test=False  # Siempre False para pruebas reales
+            force_production=True  # Siempre real para pruebas
         )
         
         return JSONResponse(

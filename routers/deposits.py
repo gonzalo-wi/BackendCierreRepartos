@@ -339,6 +339,15 @@ class ChequeCreate(BaseModel):
     banco: str  # REQUERIDO
     importe: float  # REQUERIDO
     fecha_cobro: Optional[str] = None  # Se mapea a fecha
+    nrocta: Optional[int] = None  # Número de cuenta del cliente
+    nro_cuenta: Optional[int] = None  # Número de cuenta del cheque
+    sucursal: Optional[str] = None  # Sucursal del banco
+    localidad: Optional[str] = None  # Localidad
+    # Campos adicionales que el usuario ingresa en el modal
+    nrocta: Optional[int] = None  # Número de cuenta del cliente
+    nro_cuenta: Optional[int] = None  # Número de cuenta del cheque
+    sucursal: Optional[str] = None  # Sucursal del banco
+    localidad: Optional[str] = None  # Localidad
 
 class RetencionCreate(BaseModel):
     tipo: Optional[str] = None  # Campo del frontend
@@ -382,14 +391,14 @@ def create_deposit_cheque(deposit_id: str, cheque: ChequeCreate):
         
         nuevo_cheque = Cheque(
             deposit_id=deposit.deposit_id,
-            nrocta=1,  # Valor por defecto
+            nrocta=cheque.nrocta or 1,  # Usar valor del frontend o default
             concepto="CHE",  # Valor por defecto
             banco=cheque.banco,
-            sucursal="001",  # Valor por defecto
-            localidad="1234",  # Valor por defecto
+            sucursal=cheque.sucursal or "001",  # Usar valor del frontend o default
+            localidad=cheque.localidad or "1234",  # Usar valor del frontend o default
             nro_cheque=nro_cheque_value,
-            nro_cuenta=1234,  # Valor por defecto
-            titular="",  # Valor por defecto
+            nro_cuenta=cheque.nro_cuenta or 1234,  # Usar valor del frontend o default
+            titular="",  # Valor por defecto (vacío como está en el modelo)
             fecha=fecha_value,
             importe=float(cheque.importe)
         )

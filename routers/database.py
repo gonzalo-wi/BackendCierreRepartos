@@ -6,6 +6,20 @@ from datetime import datetime
 from fastapi import APIRouter, Query, HTTPException
 from fastapi.responses import JSONResponse
 from schemas.requests import StatusUpdateRequest, ExpectedAmountUpdateRequest
+from sqlalchemy import func, text, Date, distinct
+import os
+
+def get_date_function(column):
+    """
+    Función auxiliar para extraer la fecha de un datetime, compatible con diferentes bases de datos
+    """
+    db_type = os.getenv("DB_TYPE", "sqlserver")
+    if db_type == "sqlserver":
+        # En SQL Server usamos CAST para extraer solo la fecha
+        return func.cast(column, Date)
+    else:
+        # Para SQLite u otras bases de datos
+        return func.date(column)
 
 router = APIRouter(
     prefix="/db",
@@ -59,7 +73,7 @@ def get_deposits_from_db_by_plant(date: str = Query(...)):
         
         # Consultar depósitos de la fecha especificada
         deposits = db.query(Deposit).filter(
-            func.date(Deposit.date_time) == query_date
+            get_date_function(Deposit.date_time) == query_date
         ).all()
         
         # Organizar por planta
@@ -189,7 +203,7 @@ def get_deposits_from_db_by_machine(date: str = Query(...)):
         
         # Consultar depósitos de la fecha especificada
         deposits = db.query(Deposit).filter(
-            func.date(Deposit.date_time) == query_date
+            get_date_function(Deposit.date_time) == query_date
         ).all()
         
         # Organizar por máquina
@@ -264,8 +278,8 @@ def get_available_dates():
         
         # Obtener fechas únicas
         dates = db.query(
-            distinct(func.date(Deposit.date_time)).label('date')
-        ).order_by(func.date(Deposit.date_time).desc()).all()
+            distinct(get_date_function(Deposit.date_time)).label('date')
+        ).order_by(get_date_function(Deposit.date_time).desc()).all()
         
         # Convertir a lista de strings
         available_dates = []
@@ -306,8 +320,8 @@ def get_db_summary():
         total_amount = db.query(func.sum(Deposit.total_amount)).scalar() or 0
         unique_machines = db.query(func.count(distinct(Deposit.identifier))).scalar()
         date_range = db.query(
-            func.min(func.date(Deposit.date_time)).label('min_date'),
-            func.max(func.date(Deposit.date_time)).label('max_date')
+            func.min(get_date_function(Deposit.date_time)).label('min_date'),
+            func.max(get_date_function(Deposit.date_time)).label('max_date')
         ).first()
         
         # Totales por máquina
