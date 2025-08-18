@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+                 xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
+                 xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
+  <soap12:Body>
+    <reparto_cerrar xmlns="http://airtech-it.com.ar/">
+      <idreparto>46</idreparto>
+      <fecha>15/08/2025</fecha>
+      <ajustar_envases>0</ajustar_envases>
+      <efectivo_importe>251614</efectivo_importe>
+      <retenciones>[]</retenciones>
+      <cheques>[]</cheques>
+      <usuario>BACKEND_SYSTEM</usuario>
+    </reparto_cerrar>
+  </soap12:Body>
+</soap12:Envelope>

@@ -11,6 +11,8 @@ from sqlalchemy import func
 import time
 import xml.etree.ElementTree as ET
 import logging
+import re
+from pathlib import Path
 
 class RepartoCierreService:
     """
@@ -191,14 +193,25 @@ class RepartoCierreService:
             elif hasattr(cheque.fecha, 'strftime'):
                 fecha_formateada = cheque.fecha.strftime("%d/%m/%Y")
         
+        # Convertir campos que el SOAP espera numéricos
+        banco_num = self._extract_int(cheque.banco, default=0)
+        if banco_num == 0 and (cheque.banco and not str(cheque.banco).strip().isdigit()):
+            logging.warning(f"⚠️ 'banco' no numérico ('{cheque.banco}'), se envía 0")
+        sucursal_num = self._extract_int(cheque.sucursal, default=0)
+        if sucursal_num == 0 and (cheque.sucursal and not str(cheque.sucursal).strip().isdigit()):
+            logging.warning(f"⚠️ 'sucursal' no numérico ('{cheque.sucursal}'), se envía 0")
+        localidad_num = self._extract_int(cheque.localidad, default=0)
+        if localidad_num == 0 and (cheque.localidad and not str(cheque.localidad).strip().isdigit()):
+            logging.warning(f"⚠️ 'localidad' no numérico ('{cheque.localidad}'), se envía 0")
+
         return {
-            "nrocta": cheque.nrocta or 1,
+            "nrocta": int(cheque.nrocta or 1),
             "concepto": cheque.concepto or "CHE",
-            "banco": cheque.banco or "",
-            "sucursal": cheque.sucursal or "001",
-            "localidad": cheque.localidad or "1234",
+            "banco": banco_num,
+            "sucursal": sucursal_num,
+            "localidad": localidad_num,
             "nro_cheque": cheque.nro_cheque or "",
-            "nro_cuenta": cheque.nro_cuenta or 1234,
+            "nro_cuenta": int(cheque.nro_cuenta or 1234),
             "titular": cheque.titular or "",
             "fecha": fecha_formateada,
             "importe": float(cheque.importe) if cheque.importe else 0.0
@@ -223,13 +236,45 @@ class RepartoCierreService:
             elif hasattr(retencion.fecha, 'strftime'):
                 fecha_formateada = retencion.fecha.strftime("%d/%m/%Y")
 
+        # Convertir nro_retencion a numérico
+        nro_ret_num = self._extract_int(retencion.nro_retencion, default=0)
+        if nro_ret_num == 0 and (retencion.nro_retencion and not str(retencion.nro_retencion).strip().isdigit()):
+            logging.warning(f"⚠️ 'nro_retencion' no numérico ('{retencion.nro_retencion}'), se envía 0")
+
         return {
-            "nrocta": retencion.nrocta or 1,
+            "nrocta": int(retencion.nrocta or 1),
             "concepto": retencion.concepto or "RIB",
-            "nro_retencion": retencion.nro_retencion or "",
+            "nro_retencion": nro_ret_num,
             "fecha": fecha_formateada,
             "importe": float(retencion.importe) if retencion.importe else 0.0
         }
+
+    def _extract_int(self, value, default: int = 0) -> int:
+        """Extrae un entero de distintos tipos de entrada (int/float/str). Si no hay dígitos, devuelve default.
+
+        - int/float: se convierte a int.
+        - str: si solo contiene dígitos, int(str). Si no, se extrae la primera secuencia de dígitos.
+        """
+        if value is None:
+            return default
+        if isinstance(value, bool):
+            return int(value)
+        if isinstance(value, (int, float)):
+            try:
+                return int(value)
+            except Exception:
+                return default
+        try:
+            s = str(value).strip()
+            if s.isdigit():
+                return int(s)
+            # Extraer la primera secuencia de dígitos
+            m = re.search(r"\d+", s)
+            if m:
+                return int(m.group(0))
+        except Exception:
+            pass
+        return default
     
     def _build_soap_envelope(self, reparto_data: Dict) -> str:
         """
@@ -266,6 +311,11 @@ class RepartoCierreService:
         """
         try:
             soap_envelope = self._build_soap_envelope(reparto_data)
+            # Guardar exactamente lo que se envía en un archivo .xml
+            try:
+                self._dump_soap_payload_to_file(reparto_data, soap_envelope)
+            except Exception as dump_err:
+                logging.warning(f"⚠️ No se pudo guardar el SOAP enviado a archivo: {dump_err}")
             use_production = self.production_mode if force_production is None else bool(force_production)
             
             headers = {
@@ -427,6 +477,27 @@ class RepartoCierreService:
                 "error": f"Error inesperado: {str(e)}",
                 "idreparto": reparto_data["idreparto"]
             }
+
+    def _dump_soap_payload_to_file(self, reparto_data: Dict, soap_envelope: str) -> None:
+        """Guarda el XML SOAP exacto que se envía para auditoría/debug.
+
+        Estructura de archivos:
+        logs/soap_requests/YYYY-MM-DD/reparto_<idreparto>_<HHMMSS_micros>.xml
+        """
+        # Construir rutas
+        root_dir = Path(__file__).resolve().parent.parent  # carpeta BackendCierreRepartos
+        date_dir = datetime.now().strftime("%Y-%m-%d")
+        out_dir = root_dir / "logs" / "soap_requests" / date_dir
+        out_dir.mkdir(parents=True, exist_ok=True)
+
+        # Nombre de archivo con idreparto y timestamp
+        ts = datetime.now().strftime("%H%M%S_%f")
+        idrep = reparto_data.get("idreparto", "sin_id")
+        file_path = out_dir / f"reparto_{idrep}_{ts}.xml"
+
+        # Escribir exactamente el envelope sin adornos
+        file_path.write_text(soap_envelope, encoding="utf-8")
+        logging.info(f"📝 SOAP payload guardado: {file_path}")
     
     def _actualizar_estado_reparto(self, deposit_db_id: int, nuevo_estado: str) -> bool:
         """

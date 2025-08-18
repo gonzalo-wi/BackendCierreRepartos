@@ -4,7 +4,7 @@ Router para endpoints de consulta de depósitos desde miniBank
 from datetime import datetime
 from fastapi import APIRouter, Query, Request
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from typing import Optional
 from schemas.requests import StatusUpdateRequest, ExpectedAmountUpdateRequest
 
@@ -29,6 +29,37 @@ router = APIRouter(
     prefix="/deposits",
     tags=["deposits"]
 )
+
+
+# Helpers locales para normalizar campos numéricos provenientes del frontend
+def _extract_int(value, default: int | None = None) -> Optional[int]:
+    try:
+        if value is None:
+            return default
+        if isinstance(value, bool):
+            return int(value)
+        if isinstance(value, (int, float)):
+            return int(value)
+        s = str(value).strip()
+        if s.isdigit():
+            return int(s)
+        import re
+        m = re.search(r"\d+", s)
+        if m:
+            return int(m.group(0))
+    except Exception:
+        pass
+    return default
+
+
+def _digits_str(value, default: str = "") -> str:
+    """Devuelve solo dígitos en forma de string. Si no hay, retorna default."""
+    if value is None:
+        return default
+    s = str(value)
+    import re
+    digits = "".join(re.findall(r"\d+", s))
+    return digits if digits else default
 
 
 @router.get("")
@@ -351,10 +382,72 @@ class ChequeCreate(BaseModel):
 
 class RetencionCreate(BaseModel):
     tipo: Optional[str] = None  # Campo del frontend
-    numero: Optional[int] = None  # Se mapea a nro_retencion (acepta int)
-    importe: float  # REQUERIDO
+    numero: Optional[object] = None  # Acepta int o str; se mapea a nro_retencion
+    importe: object  # Acepta float o str numérico
     concepto: Optional[str] = None
-    numero_cuenta: Optional[int] = None  # Se mapea a nrocta
+    numero_cuenta: Optional[object] = None  # Acepta int o str; se mapea a nrocta
+
+    # Normaliza strings vacíos a None en campos de texto
+    @field_validator('tipo', 'concepto', mode='before')
+    @classmethod
+    def _empty_str_to_none(cls, v):
+        if isinstance(v, str):
+            v2 = v.strip()
+            return v2 if v2 != '' else None
+        return v
+
+    # Permite que 'numero' sea int, str numérico o str libre; '' -> None
+    @field_validator('numero', mode='before')
+    @classmethod
+    def _normalize_numero(cls, v):
+        if v is None:
+            return None
+        if isinstance(v, str):
+            v2 = v.strip()
+            if v2 == '':
+                return None
+            # Dejar strings no numéricos tal cual (el modelo de BD guarda string)
+            if v2.isdigit():
+                try:
+                    return int(v2)
+                except Exception:
+                    return v2
+            return v2
+        return v
+
+    # Permite que 'numero_cuenta' sea int o str numérico; otros -> None
+    @field_validator('numero_cuenta', mode='before')
+    @classmethod
+    def _normalize_numero_cuenta(cls, v):
+        if v is None:
+            return None
+        if isinstance(v, str):
+            v2 = v.strip()
+            if v2 == '':
+                return None
+            if v2.isdigit():
+                try:
+                    return int(v2)
+                except Exception:
+                    return None
+            return None
+        return v
+
+    # Acepta importe como float o str (con coma o punto). '' -> error claro
+    @field_validator('importe', mode='before')
+    @classmethod
+    def _normalize_importe(cls, v):
+        if v is None:
+            raise ValueError('importe es requerido')
+        if isinstance(v, str):
+            v2 = v.replace(',', '.').strip()
+            if v2 == '':
+                raise ValueError('importe es requerido')
+            try:
+                return float(v2)
+            except Exception:
+                raise ValueError('importe debe ser numérico')
+        return v
 
 # ============================================================================
 # ENDPOINTS PARA CREAR CHEQUES Y RETENCIONES
@@ -389,13 +482,18 @@ def create_deposit_cheque(deposit_id: str, cheque: ChequeCreate):
             except:
                 pass  # Mantener formato original si falla conversión
         
+        # Normalizar numericos requeridos por SOAP: banco/sucursal/localidad deben ser numéricos
+        banco_norm = _extract_int(cheque.banco, 0)
+        sucursal_norm = _extract_int(cheque.sucursal, 0) if cheque.sucursal is not None else 0
+        localidad_norm = _extract_int(cheque.localidad, 0) if cheque.localidad is not None else 0
+
         nuevo_cheque = Cheque(
             deposit_id=deposit.deposit_id,
             nrocta=cheque.nrocta or 1,  # Usar valor del frontend o default
             concepto="CHE",  # Valor por defecto
-            banco=cheque.banco,
-            sucursal=cheque.sucursal or "001",  # Usar valor del frontend o default
-            localidad=cheque.localidad or "1234",  # Usar valor del frontend o default
+            banco=str(banco_norm),
+            sucursal=str(sucursal_norm or 0).zfill(1),  # guardamos como string numérica
+            localidad=str(localidad_norm or 0),  # string numérica
             nro_cheque=nro_cheque_value,
             nro_cuenta=cheque.nro_cuenta or 1234,  # Usar valor del frontend o default
             titular="",  # Valor por defecto (vacío como está en el modelo)
@@ -449,11 +547,12 @@ def create_deposit_retencion(deposit_id: str, retencion: RetencionCreate):
         deposit = db.query(Deposit).filter(Deposit.deposit_id == deposit_id).first()
         if not deposit:
             raise HTTPException(status_code=404, detail="Depósito no encontrado")
-        
+
         # Mapear campos del frontend a campos de BD (compatibilidad)
-        nro_retencion_value = str(retencion.numero) if retencion.numero else "SIN_NUMERO"
+        # nro_retencion debe ser numérico para SOAP
+        nro_retencion_value = _digits_str(retencion.numero, default="")
         concepto_value = retencion.concepto or "RIB"
-        
+
         # DEBUG: Log para ver qué datos llegan del frontend
         print(f"🔍 DEBUG RETENCIÓN - Datos recibidos:")
         print(f"   numero: {retencion.numero}")
@@ -478,7 +577,7 @@ def create_deposit_retencion(deposit_id: str, retencion: RetencionCreate):
             deposit_id=deposit_id,
             nrocta=nrocta_value,
             concepto=retencion.concepto or "RIB",
-            nro_retencion=str(retencion.numero) if retencion.numero else "",  # Convertir a string
+            nro_retencion=nro_retencion_value,
             fecha=datetime.now(),
             importe=retencion.importe
         )
@@ -957,7 +1056,7 @@ def update_deposit_cheque(deposit_id: str, cheque_id: int, cheque_data: ChequeCr
             cheque.nro_cheque = str(cheque_data.numero)
             
         if cheque_data.banco is not None:
-            cheque.banco = cheque_data.banco
+            cheque.banco = str(_extract_int(cheque_data.banco, 0))
             
         if cheque_data.importe is not None:
             cheque.importe = cheque_data.importe
@@ -974,6 +1073,12 @@ def update_deposit_cheque(deposit_id: str, cheque_id: int, cheque_data: ChequeCr
                     pass  # Mantener formato original si falla conversión
             cheque.fecha = fecha_value
         
+        # Actualizar sucursal/localidad si vinieron en la petición
+        if hasattr(cheque_data, 'sucursal') and cheque_data.sucursal is not None:
+            cheque.sucursal = str(_extract_int(cheque_data.sucursal, 0))
+        if hasattr(cheque_data, 'localidad') and cheque_data.localidad is not None:
+            cheque.localidad = str(_extract_int(cheque_data.localidad, 0))
+
         db.commit()
         db.refresh(cheque)
         
@@ -1067,7 +1172,7 @@ def update_deposit_retencion(deposit_id: str, retencion_id: int, retencion_data:
         
         # Actualizar los campos
         if retencion_data.numero is not None:
-            retencion.nro_retencion = str(retencion_data.numero)
+            retencion.nro_retencion = _digits_str(retencion_data.numero, default="")
         
         if retencion_data.concepto is not None:
             retencion.concepto = retencion_data.concepto

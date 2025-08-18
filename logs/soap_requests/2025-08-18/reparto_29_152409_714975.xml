@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+                 xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
+                 xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
+  <soap12:Body>
+    <reparto_cerrar xmlns="http://airtech-it.com.ar/">
+      <idreparto>29</idreparto>
+      <fecha>15/08/2025</fecha>
+      <ajustar_envases>0</ajustar_envases>
+      <efectivo_importe>294400</efectivo_importe>
+      <retenciones>[{"nrocta": 2423, "concepto": "RGA", "nro_retencion": 23424, "fecha": "18/08/2025", "importe": 50000.0}]</retenciones>
+      <cheques>[{"nrocta": 23424, "concepto": "CHE", "banco": 342, "sucursal": 234, "localidad": 4234, "nro_cheque": "2342", "nro_cuenta": 2342, "titular": "", "fecha": "18/08/2025", "importe": 3444.0}]</cheques>
+      <usuario>BACKEND_SYSTEM</usuario>
+    </reparto_cerrar>
+  </soap12:Body>
+</soap12:Envelope>
