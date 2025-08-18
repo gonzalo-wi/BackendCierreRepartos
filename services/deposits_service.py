@@ -9,13 +9,10 @@ from database import SessionLocal
 
 load_dotenv()
 
-BASE_URL = os.getenv("BASE_URL", "https://pimsapi.minibank.com.ar/")
-USER = os.getenv("API_USER")
-PASSWORD = os.getenv("API_PASSWORD")
-
-# Verificar que las credenciales estén configuradas
-if not USER or not PASSWORD:
-    raise ValueError("Las variables de entorno API_USER y API_PASSWORD deben estar configuradas en el archivo .env")
+# Configuración hardcodeada para producción
+BASE_URL = "https://pimsapi.minibank.com.ar/"
+USER = "admin"
+PASSWORD = "password123"
 
 def get_deposits(stIdentifier: str, date: str):
     # Intentar varios formatos de fecha
