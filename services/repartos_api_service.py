@@ -18,25 +18,29 @@ def get_repartos_valores(fecha: str) -> List[Dict]:
         Lista de diccionarios con los valores de repartos
     """
     try:
-        url = "http://192.168.0.8:8097/service1.asmx/reparto_get_valores"
-        params = {
-            "idreparto": 0,  # 0 para obtener todos
-            "fecha": fecha
-        }
+        url = "http://192.168.0.8:97/service1.asmx/reparto_get_valores"
+        params = {"idreparto": 0, "fecha": fecha}
         
-        logging.info(f"🌐 Consultando API externa: {url} para fecha {fecha}")
+        logging.debug(f"🌐 Consultando API: {url}?idreparto=0&fecha={fecha}")
         
-        response = requests.get(url, params=params, timeout=10)
+        response = requests.get(url, params=params, timeout=30)
         response.raise_for_status()
         
         data = response.json()
         
-        # Filtrar solo los que tienen status = 1 (cierre completado)
-        repartos_cerrados = [r for r in data if r.get("status") == 1]
+        # Filtrar repartos que tienen valores (efectivo > 0 o retenciones > 0 o cheques > 0)
+        repartos_con_valores = []
+        for r in data:
+            efectivo = float(r.get("Efectivo", 0) or 0)
+            retenciones = float(r.get("Retenciones", 0) or 0)
+            cheques = float(r.get("Cheques", 0) or 0)
+            
+            if efectivo > 0 or retenciones > 0 or cheques > 0:
+                repartos_con_valores.append(r)
         
-        logging.info(f"✅ API externa respondió: {len(data)} repartos total, {len(repartos_cerrados)} con cierre completado")
+        logging.info(f"✅ API externa respondió: {len(data)} repartos total, {len(repartos_con_valores)} con valores > 0")
         
-        return repartos_cerrados
+        return repartos_con_valores
         
     except requests.exceptions.RequestException as e:
         logging.error(f"❌ Error al consultar API externa: {str(e)}")
@@ -160,6 +164,7 @@ def actualizar_depositos_esperados(fecha_str: str) -> Dict:
                 logging.info(f"🔍 Estructura de primer reparto: {repartos_valores[0].keys()}")
             
             valores_map = {}
+            efectivos_map = {}  # Mapa para guardar solo los efectivos
             composiciones_map = {}
             
             for r in repartos_valores:
@@ -173,16 +178,18 @@ def actualizar_depositos_esperados(fecha_str: str) -> Dict:
                 if id_key:
                     idreparto = int(r[id_key])
                     
-                    # Buscar la clave correcta para efectivo
-                    efectivo_key = None
-                    for key in ['efectivo', 'Efectivo']:
-                        if key in r:
-                            efectivo_key = key
-                            break
+                    # Calcular el valor esperado total: Efectivo + Retenciones + Cheques
+                    efectivo = float(r.get("Efectivo", 0) or r.get("efectivo", 0) or 0)
+                    retenciones = float(r.get("Retenciones", 0) or r.get("retenciones", 0) or 0)
+                    cheques = float(r.get("Cheques", 0) or r.get("cheques", 0) or 0)
                     
-                    if efectivo_key:
-                        valores_map[idreparto] = r[efectivo_key]
+                    total_esperado = efectivo + retenciones + cheques
+                    
+                    if total_esperado > 0:
+                        valores_map[idreparto] = int(total_esperado)
+                        efectivos_map[idreparto] = int(efectivo)  # Guardar efectivo por separado
                         composiciones_map[idreparto] = generar_composicion_esperado(r)
+                        logging.debug(f"💰 Reparto {idreparto}: Efectivo={efectivo}, Retenciones={retenciones}, Cheques={cheques}, Total={total_esperado}")
                 else:
                     logging.warning(f"⚠️ No se encontró clave de ID en reparto: {r.keys()}")
                     
@@ -206,17 +213,19 @@ def actualizar_depositos_esperados(fecha_str: str) -> Dict:
                     # Buscar el valor esperado en los datos de la API
                     if idreparto in valores_map:
                         coincidencias_encontradas += 1
-                        efectivo_esperado = int(valores_map[idreparto])
+                        total_esperado = int(valores_map[idreparto])
+                        efectivo_esperado = int(efectivos_map.get(idreparto, 0))
                         composicion = composiciones_map.get(idreparto, "E")
                         
-                        logging.debug(f"💰 Depósito {deposit.deposit_id}: actual={deposit.deposit_esperado}, esperado={efectivo_esperado}, composición={composicion}")
+                        logging.debug(f"💰 Depósito {deposit.deposit_id}: actual={deposit.deposit_esperado}, esperado={total_esperado}, efectivo={efectivo_esperado}, composición={composicion}")
                         
                         # Actualizar solo si el valor o composición cambió
-                        if deposit.deposit_esperado != efectivo_esperado or deposit.composicion_esperado != composicion:
+                        if deposit.deposit_esperado != total_esperado or deposit.composicion_esperado != composicion:
                             old_value = deposit.deposit_esperado
                             old_composicion = deposit.composicion_esperado
                             
-                            deposit.deposit_esperado = efectivo_esperado
+                            deposit.deposit_esperado = total_esperado
+                            deposit.efectivo_esperado = efectivo_esperado  # Guardar efectivo por separado
                             deposit.composicion_esperado = composicion
                             
                             # Actualizar estado automáticamente
@@ -228,15 +237,15 @@ def actualizar_depositos_esperados(fecha_str: str) -> Dict:
                                 "user_name": deposit.user_name,
                                 "idreparto": idreparto,
                                 "old_expected": old_value,
-                                "new_expected": efectivo_esperado,
+                                "new_expected": total_esperado,
                                 "old_composicion": old_composicion,
                                 "new_composicion": composicion,
                                 "estado": deposit.estado.value
                             })
                             
-                            logging.info(f"💰 Actualizado {deposit.deposit_id}: {old_value} -> {efectivo_esperado}, composición: {old_composicion} -> {composicion} (idreparto: {idreparto})")
+                            logging.info(f"💰 Actualizado {deposit.deposit_id}: {old_value} -> {total_esperado}, composición: {old_composicion} -> {composicion} (idreparto: {idreparto})")
                         else:
-                            logging.debug(f"✓ Depósito {deposit.deposit_id} ya tiene el valor y composición correctos: {efectivo_esperado} ({composicion})")
+                            logging.debug(f"✓ Depósito {deposit.deposit_id} ya tiene el valor y composición correctos: {total_esperado} ({composicion})")
                     else:
                         logging.warning(f"⚠️ No se encontró valor para idreparto {idreparto} en API externa (user_name: '{deposit.user_name}')")
                 else:

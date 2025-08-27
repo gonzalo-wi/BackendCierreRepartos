@@ -48,7 +48,12 @@ setup_request_logging(app)
 # ========== CONFIGURACIÓN DE CORS ==========
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:3001", "*"],  # Ajustar según tu frontend
+    allow_origins=[
+        "http://localhost:3000", 
+        "http://localhost:3001", 
+        "http://192.168.0.250:3000",  # IP del servidor
+        "http://127.0.0.1:3000"      # localhost alternativo
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

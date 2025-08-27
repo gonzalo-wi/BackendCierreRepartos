@@ -53,7 +53,18 @@ class LoggingConfig:
     Configurador del sistema de logging de la aplicación
     """
     
-    def __init__(self, base_dir: str = "/app"):
+    def __init__(self, base_dir: str = None):
+        # Detectar automáticamente si estamos en Docker o desarrollo local
+        if base_dir is None:
+            if os.path.exists("/app") and os.getcwd().startswith("/app"):
+                # Estamos en Docker
+                base_dir = "/app"
+            else:
+                # Estamos en desarrollo local - usar directorio actual del proyecto
+                current_file = Path(__file__).resolve()
+                project_root = current_file.parent.parent  # Subir dos niveles desde config/
+                base_dir = str(project_root)
+        
         self.base_dir = Path(base_dir)
         self.logs_dir = self.base_dir / "logs"
         self.logs_dir.mkdir(exist_ok=True)

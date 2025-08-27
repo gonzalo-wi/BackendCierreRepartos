@@ -19,7 +19,8 @@ class Deposit(Base):
     identifier       = Column(String(255))
     user_name        = Column(String(255))
     total_amount     = Column(Integer)
-    deposit_esperado = Column(Integer, nullable=True)  # Nuevo campo
+    deposit_esperado = Column(Integer, nullable=True)  # Total suma (Efectivo + Retenciones + Cheques)
+    efectivo_esperado = Column(Integer, nullable=True)  # Solo efectivo para cierre
     composicion_esperado = Column(String(50), nullable=True)  # Composición E/C/R
     currency_code    = Column(String(10))
     deposit_type     = Column(String(100))

@@ -1,0 +1,335 @@
+2025-08-13 11:31:19,755 - app - INFO - Sistema de logging inicializado correctamente
+2025-08-13 11:31:30,954 - app - INFO - REQUEST_START - ID:5d0b9a61-2363-4e46-b72e-07f5a3d62cbf Method:GET URL:http://localhost:8001/api/charts/daily-totals?start_date=2025-08-01&end_date=2025-08-13&plant=total IP:127.0.0.1 User:anonymous UA:Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/13
+2025-08-13 11:31:30,958 - app - INFO - REQUEST_START - ID:8da84fbe-91f2-4faa-ac04-d32ce2904cef Method:GET URL:http://localhost:8001/api/totals/all?date=08-13-2025 IP:127.0.0.1 User:anonymous UA:Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/13
+2025-08-13 11:31:35,494 - app - INFO - REQUEST_END - ID:8da84fbe-91f2-4faa-ac04-d32ce2904cef Status:200 Time:4.537s Method:GET URL:http://localhost:8001/api/totals/all?date=08-13-2025 User:anonymous
+2025-08-13 11:31:35,519 - app - INFO - REQUEST_END - ID:5d0b9a61-2363-4e46-b72e-07f5a3d62cbf Status:200 Time:4.565s Method:GET URL:http://localhost:8001/api/charts/daily-totals?start_date=2025-08-01&end_date=2025-08-13&plant=total User:anonymous
+2025-08-13 11:31:45,270 - app - INFO - REQUEST_START - ID:93d81f8e-ac27-4c17-a9d5-b9fde37fc9a3 Method:GET URL:http://localhost:8001/api/deposits/db/by-plant?date=2025-08-13 IP:127.0.0.1 User:anonymous UA:Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/13
+2025-08-13 11:31:50,797 - app - INFO - REQUEST_END - ID:93d81f8e-ac27-4c17-a9d5-b9fde37fc9a3 Status:200 Time:5.527s Method:GET URL:http://localhost:8001/api/deposits/db/by-plant?date=2025-08-13 User:anonymous
+2025-08-18 20:58:27,526 - app - INFO - Sistema de logging inicializado correctamente
+2025-08-18 20:58:35,191 - app - INFO - REQUEST_START - ID:7dd71a2d-5998-4a54-ae5e-9fbdbd0df39e Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 20:58:35,193 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 20:58:35,193 - app - INFO - REQUEST_END - ID:7dd71a2d-5998-4a54-ae5e-9fbdbd0df39e Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 20:58:45,281 - app - INFO - REQUEST_START - ID:f9292d9a-c1de-4401-b647-3c6a5eb7fdeb Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 20:58:45,282 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 20:58:45,282 - app - INFO - REQUEST_END - ID:f9292d9a-c1de-4401-b647-3c6a5eb7fdeb Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 20:58:53,146 - app - INFO - REQUEST_START - ID:e6f1befb-ba3e-47f5-af26-9dbefc85478b Method:GET URL:http://localhost:8001/ IP:172.19.0.1 User:anonymous UA:curl/8.5.0
+2025-08-18 20:58:53,147 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 20:58:53,148 - app - INFO - REQUEST_END - ID:e6f1befb-ba3e-47f5-af26-9dbefc85478b Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 20:58:55,365 - app - INFO - REQUEST_START - ID:59fa20b4-9dbc-4d27-a75b-fe4b5702ac0d Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 20:58:55,366 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 20:58:55,366 - app - INFO - REQUEST_END - ID:59fa20b4-9dbc-4d27-a75b-fe4b5702ac0d Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 20:59:05,454 - app - INFO - REQUEST_START - ID:6175af51-dc1c-4912-bdea-3bd9eb7eaa69 Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 20:59:05,455 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 20:59:05,456 - app - INFO - REQUEST_END - ID:6175af51-dc1c-4912-bdea-3bd9eb7eaa69 Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 20:59:09,618 - app - INFO - REQUEST_START - ID:45cfdee6-36d5-4e9b-a3c3-dc53f713c0d8 Method:POST URL:http://localhost/api/fix/login IP:172.19.0.3 User:anonymous UA:curl/8.5.0
+2025-08-18 20:59:09,664 - app - INFO - REQUEST_END - ID:45cfdee6-36d5-4e9b-a3c3-dc53f713c0d8 Status:401 Time:0.046s Method:POST URL:http://localhost/api/fix/login User:anonymous
+2025-08-18 20:59:15,541 - app - INFO - REQUEST_START - ID:f5f33637-3589-4c1e-87ac-7820415888f4 Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 20:59:15,542 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 20:59:15,543 - app - INFO - REQUEST_END - ID:f5f33637-3589-4c1e-87ac-7820415888f4 Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 20:59:25,642 - app - INFO - REQUEST_START - ID:858dbec5-4010-4a5e-a954-7231f51c7924 Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 20:59:25,643 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 20:59:25,643 - app - INFO - REQUEST_END - ID:858dbec5-4010-4a5e-a954-7231f51c7924 Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 20:59:35,724 - app - INFO - REQUEST_START - ID:1e66b11f-0ddb-4147-ae1f-2ae8fea5df6e Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 20:59:35,725 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 20:59:35,726 - app - INFO - REQUEST_END - ID:1e66b11f-0ddb-4147-ae1f-2ae8fea5df6e Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 20:59:45,812 - app - INFO - REQUEST_START - ID:c13d9f34-c5a8-4777-bfd4-3336b014b474 Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 20:59:45,814 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 20:59:45,815 - app - INFO - REQUEST_END - ID:c13d9f34-c5a8-4777-bfd4-3336b014b474 Status:200 Time:0.003s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 20:59:55,903 - app - INFO - REQUEST_START - ID:18884606-7396-4955-976a-ac9105bf2432 Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 20:59:55,904 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 20:59:55,905 - app - INFO - REQUEST_END - ID:18884606-7396-4955-976a-ac9105bf2432 Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:00:05,981 - app - INFO - REQUEST_START - ID:f7b6990f-9c54-4492-89c4-854180d7f8e8 Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:00:05,982 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:00:05,983 - app - INFO - REQUEST_END - ID:f7b6990f-9c54-4492-89c4-854180d7f8e8 Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:00:16,069 - app - INFO - REQUEST_START - ID:e408b5c2-9670-418d-8bbb-4b4ccd95c01c Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:00:16,070 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:00:16,071 - app - INFO - REQUEST_END - ID:e408b5c2-9670-418d-8bbb-4b4ccd95c01c Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:00:26,155 - app - INFO - REQUEST_START - ID:fd19a3da-f914-4a54-9ab2-7880b7611c71 Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:00:26,156 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:00:26,156 - app - INFO - REQUEST_END - ID:fd19a3da-f914-4a54-9ab2-7880b7611c71 Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:00:36,246 - app - INFO - REQUEST_START - ID:f3ceacda-eeb8-4efa-a1a4-1523f061cf64 Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:00:36,247 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:00:36,247 - app - INFO - REQUEST_END - ID:f3ceacda-eeb8-4efa-a1a4-1523f061cf64 Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:00:46,339 - app - INFO - REQUEST_START - ID:c57d61d0-c4fe-4232-99d1-fea9ab36836c Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:00:46,341 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:00:46,342 - app - INFO - REQUEST_END - ID:c57d61d0-c4fe-4232-99d1-fea9ab36836c Status:200 Time:0.003s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:00:56,427 - app - INFO - REQUEST_START - ID:77393a56-867c-4b14-9241-c6e078322d78 Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:00:56,428 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:00:56,428 - app - INFO - REQUEST_END - ID:77393a56-867c-4b14-9241-c6e078322d78 Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:01:06,523 - app - INFO - REQUEST_START - ID:f9e893cd-2333-4862-868a-9de3ddd443ec Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:01:06,524 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:01:06,524 - app - INFO - REQUEST_END - ID:f9e893cd-2333-4862-868a-9de3ddd443ec Status:200 Time:0.001s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:01:16,596 - app - INFO - REQUEST_START - ID:7cdd1e82-4446-478c-ac2b-e57839449f6b Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:01:16,597 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:01:16,597 - app - INFO - REQUEST_END - ID:7cdd1e82-4446-478c-ac2b-e57839449f6b Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:01:26,682 - app - INFO - REQUEST_START - ID:158e5ccf-6945-4b0a-b4ef-3c65d5678943 Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:01:26,683 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:01:26,683 - app - INFO - REQUEST_END - ID:158e5ccf-6945-4b0a-b4ef-3c65d5678943 Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:01:36,772 - app - INFO - REQUEST_START - ID:026509d6-3dec-4662-85e4-ccebb9f466f4 Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:01:36,773 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:01:36,773 - app - INFO - REQUEST_END - ID:026509d6-3dec-4662-85e4-ccebb9f466f4 Status:200 Time:0.001s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:01:46,858 - app - INFO - REQUEST_START - ID:16c712a3-7d7f-4bbb-8e88-be1fc57bb9b2 Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:01:46,859 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:01:46,859 - app - INFO - REQUEST_END - ID:16c712a3-7d7f-4bbb-8e88-be1fc57bb9b2 Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:01:56,947 - app - INFO - REQUEST_START - ID:388873ec-f93a-406b-aa9e-576c9ac10874 Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:01:56,949 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:01:56,950 - app - INFO - REQUEST_END - ID:388873ec-f93a-406b-aa9e-576c9ac10874 Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:02:07,037 - app - INFO - REQUEST_START - ID:4469dfa3-1ce9-47f5-8c38-15bfc763aefd Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:02:07,038 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:02:07,038 - app - INFO - REQUEST_END - ID:4469dfa3-1ce9-47f5-8c38-15bfc763aefd Status:200 Time:0.001s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:02:17,127 - app - INFO - REQUEST_START - ID:8306db22-19d9-46c2-9519-d49837cdb175 Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:02:17,128 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:02:17,128 - app - INFO - REQUEST_END - ID:8306db22-19d9-46c2-9519-d49837cdb175 Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:02:27,211 - app - INFO - REQUEST_START - ID:a9ea4b85-a132-4dfc-8918-a3b2359ccb65 Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:02:27,212 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:02:27,212 - app - INFO - REQUEST_END - ID:a9ea4b85-a132-4dfc-8918-a3b2359ccb65 Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:02:37,291 - app - INFO - REQUEST_START - ID:f4f358f7-9696-47a5-9c04-e1b003b1534f Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:02:37,292 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:02:37,293 - app - INFO - REQUEST_END - ID:f4f358f7-9696-47a5-9c04-e1b003b1534f Status:200 Time:0.001s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:02:47,375 - app - INFO - REQUEST_START - ID:13f41e89-bd6c-4499-bf62-913c9edd4236 Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:02:47,376 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:02:47,377 - app - INFO - REQUEST_END - ID:13f41e89-bd6c-4499-bf62-913c9edd4236 Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:02:57,464 - app - INFO - REQUEST_START - ID:5e0f30bf-2283-421a-82a2-a459df48508e Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:02:57,465 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:02:57,466 - app - INFO - REQUEST_END - ID:5e0f30bf-2283-421a-82a2-a459df48508e Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:03:07,553 - app - INFO - REQUEST_START - ID:812be95b-2d4f-4f77-a568-7f9e061fe6f4 Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:03:07,555 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:03:07,555 - app - INFO - REQUEST_END - ID:812be95b-2d4f-4f77-a568-7f9e061fe6f4 Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:03:17,656 - app - INFO - REQUEST_START - ID:951ee734-30b5-4bf0-9089-f4690296928c Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:03:17,657 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:03:17,657 - app - INFO - REQUEST_END - ID:951ee734-30b5-4bf0-9089-f4690296928c Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:03:27,733 - app - INFO - REQUEST_START - ID:aea65bca-96da-4f04-98f2-d15f923e55df Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:03:27,734 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:03:27,734 - app - INFO - REQUEST_END - ID:aea65bca-96da-4f04-98f2-d15f923e55df Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:03:37,818 - app - INFO - REQUEST_START - ID:0f3a3043-25a2-4625-a7dc-783d8073a444 Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:03:37,820 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:03:37,821 - app - INFO - REQUEST_END - ID:0f3a3043-25a2-4625-a7dc-783d8073a444 Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:03:47,905 - app - INFO - REQUEST_START - ID:bf6282d7-dbb8-4d83-a4f3-e67572b0df95 Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:03:47,906 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:03:47,906 - app - INFO - REQUEST_END - ID:bf6282d7-dbb8-4d83-a4f3-e67572b0df95 Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:03:57,988 - app - INFO - REQUEST_START - ID:a91a2540-7901-40bd-9a0e-79ac01571adc Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:03:57,989 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:03:57,990 - app - INFO - REQUEST_END - ID:a91a2540-7901-40bd-9a0e-79ac01571adc Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:04:08,077 - app - INFO - REQUEST_START - ID:2f002b04-f410-456f-9c23-51cd874bea41 Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:04:08,079 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:04:08,080 - app - INFO - REQUEST_END - ID:2f002b04-f410-456f-9c23-51cd874bea41 Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:04:18,166 - app - INFO - REQUEST_START - ID:24a731b9-fc69-42b1-983a-0ad67d135698 Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:04:18,167 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:04:18,168 - app - INFO - REQUEST_END - ID:24a731b9-fc69-42b1-983a-0ad67d135698 Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:04:28,246 - app - INFO - REQUEST_START - ID:4185551b-e5e5-407e-8cd0-b504fae25fc7 Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:04:28,247 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:04:28,247 - app - INFO - REQUEST_END - ID:4185551b-e5e5-407e-8cd0-b504fae25fc7 Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:04:38,335 - app - INFO - REQUEST_START - ID:b697f525-16a8-4b9e-aa38-1410f02afbd4 Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:04:38,336 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:04:38,336 - app - INFO - REQUEST_END - ID:b697f525-16a8-4b9e-aa38-1410f02afbd4 Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:04:48,420 - app - INFO - REQUEST_START - ID:0502f28d-d155-4310-9bb7-2fcd18b4f5de Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:04:48,421 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:04:48,422 - app - INFO - REQUEST_END - ID:0502f28d-d155-4310-9bb7-2fcd18b4f5de Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:04:58,507 - app - INFO - REQUEST_START - ID:b7e5e154-1da5-4a3f-b24e-79c54aa4a2af Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:04:58,508 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:04:58,509 - app - INFO - REQUEST_END - ID:b7e5e154-1da5-4a3f-b24e-79c54aa4a2af Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:05:08,595 - app - INFO - REQUEST_START - ID:9439caf3-78aa-41c6-a9b5-376d3dfda043 Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:05:08,596 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:05:08,597 - app - INFO - REQUEST_END - ID:9439caf3-78aa-41c6-a9b5-376d3dfda043 Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:05:18,681 - app - INFO - REQUEST_START - ID:2765461b-2e38-4bc1-9ea0-2c4cc4057b85 Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:05:18,682 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:05:18,683 - app - INFO - REQUEST_END - ID:2765461b-2e38-4bc1-9ea0-2c4cc4057b85 Status:200 Time:0.001s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:05:28,769 - app - INFO - REQUEST_START - ID:7f5db7a5-72a7-4903-aca3-c387c1093f61 Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:05:28,769 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:05:28,770 - app - INFO - REQUEST_END - ID:7f5db7a5-72a7-4903-aca3-c387c1093f61 Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:05:38,865 - app - INFO - REQUEST_START - ID:f84d0958-bfc8-4aca-959b-3926f2d85698 Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:05:38,866 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:05:38,866 - app - INFO - REQUEST_END - ID:f84d0958-bfc8-4aca-959b-3926f2d85698 Status:200 Time:0.001s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:05:48,989 - app - INFO - REQUEST_START - ID:376ad3d9-54ed-4115-afd9-6012cee9e1df Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:05:48,990 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:05:48,991 - app - INFO - REQUEST_END - ID:376ad3d9-54ed-4115-afd9-6012cee9e1df Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:05:59,127 - app - INFO - REQUEST_START - ID:710ac123-00dc-4b0b-8881-74abca7b98aa Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:05:59,128 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:05:59,128 - app - INFO - REQUEST_END - ID:710ac123-00dc-4b0b-8881-74abca7b98aa Status:200 Time:0.001s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:06:09,215 - app - INFO - REQUEST_START - ID:6636bee7-f73d-463c-8e47-f49458fb12cf Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:06:09,216 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:06:09,217 - app - INFO - REQUEST_END - ID:6636bee7-f73d-463c-8e47-f49458fb12cf Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:06:19,302 - app - INFO - REQUEST_START - ID:0fd4bc42-2280-4b6a-92d3-ced8949db3d5 Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:06:19,303 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:06:19,304 - app - INFO - REQUEST_END - ID:0fd4bc42-2280-4b6a-92d3-ced8949db3d5 Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:06:29,387 - app - INFO - REQUEST_START - ID:e22eddc4-aba7-4218-8f1c-a8175a6e86ce Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:06:29,388 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:06:29,389 - app - INFO - REQUEST_END - ID:e22eddc4-aba7-4218-8f1c-a8175a6e86ce Status:200 Time:0.001s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:06:39,472 - app - INFO - REQUEST_START - ID:948a428b-2282-4acc-b5a7-a03cf0fe9cd7 Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:06:39,473 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:06:39,474 - app - INFO - REQUEST_END - ID:948a428b-2282-4acc-b5a7-a03cf0fe9cd7 Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:06:49,559 - app - INFO - REQUEST_START - ID:be307b78-5050-4fcc-afa5-1d9c8de285bf Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:06:49,560 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:06:49,561 - app - INFO - REQUEST_END - ID:be307b78-5050-4fcc-afa5-1d9c8de285bf Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:06:59,652 - app - INFO - REQUEST_START - ID:de5c1be7-830d-4f91-a4f9-fe817c99e7a1 Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:06:59,653 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:06:59,654 - app - INFO - REQUEST_END - ID:de5c1be7-830d-4f91-a4f9-fe817c99e7a1 Status:200 Time:0.001s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:07:09,732 - app - INFO - REQUEST_START - ID:7e57c09b-3efb-4270-93c5-ec1683d5d3d0 Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:07:09,733 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:07:09,734 - app - INFO - REQUEST_END - ID:7e57c09b-3efb-4270-93c5-ec1683d5d3d0 Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:07:19,822 - app - INFO - REQUEST_START - ID:9f6d586e-7201-4128-93be-d6b001b7103b Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:07:19,823 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:07:19,824 - app - INFO - REQUEST_END - ID:9f6d586e-7201-4128-93be-d6b001b7103b Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:07:29,903 - app - INFO - REQUEST_START - ID:e694a514-cb74-4efb-a33b-e620a5824630 Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:07:29,904 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:07:29,905 - app - INFO - REQUEST_END - ID:e694a514-cb74-4efb-a33b-e620a5824630 Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:07:39,984 - app - INFO - REQUEST_START - ID:4763cdbf-a8e1-4ff6-8388-affa1f363d33 Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:07:39,985 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:07:39,986 - app - INFO - REQUEST_END - ID:4763cdbf-a8e1-4ff6-8388-affa1f363d33 Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:07:50,061 - app - INFO - REQUEST_START - ID:510cebff-1d71-4462-90e3-8d9d9725d302 Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:07:50,062 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:07:50,063 - app - INFO - REQUEST_END - ID:510cebff-1d71-4462-90e3-8d9d9725d302 Status:200 Time:0.001s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:08:00,144 - app - INFO - REQUEST_START - ID:988ecdd1-43ef-43f7-b4e1-19bfc992efc2 Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:08:00,145 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:08:00,146 - app - INFO - REQUEST_END - ID:988ecdd1-43ef-43f7-b4e1-19bfc992efc2 Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:08:10,234 - app - INFO - REQUEST_START - ID:26f8ecc7-0ed3-47c9-8bd5-1e7f25268612 Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:08:10,235 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:08:10,236 - app - INFO - REQUEST_END - ID:26f8ecc7-0ed3-47c9-8bd5-1e7f25268612 Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:08:20,317 - app - INFO - REQUEST_START - ID:5f4c7400-5d46-4d61-8089-f2fdbd815813 Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:08:20,318 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:08:20,318 - app - INFO - REQUEST_END - ID:5f4c7400-5d46-4d61-8089-f2fdbd815813 Status:200 Time:0.001s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:08:30,405 - app - INFO - REQUEST_START - ID:4e7ee29b-3263-42f8-9c4e-4c12d248c824 Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:08:30,406 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:08:30,407 - app - INFO - REQUEST_END - ID:4e7ee29b-3263-42f8-9c4e-4c12d248c824 Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:08:40,484 - app - INFO - REQUEST_START - ID:46c021e1-e09e-4f6e-8849-99f915bbdd82 Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:08:40,485 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:08:40,486 - app - INFO - REQUEST_END - ID:46c021e1-e09e-4f6e-8849-99f915bbdd82 Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:08:50,571 - app - INFO - REQUEST_START - ID:abcf038f-71e5-4444-a1da-75b6db610dd3 Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:08:50,572 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:08:50,572 - app - INFO - REQUEST_END - ID:abcf038f-71e5-4444-a1da-75b6db610dd3 Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:09:00,655 - app - INFO - REQUEST_START - ID:d5ff6cf6-1330-460a-8bbf-5b53533a4eb1 Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:09:00,656 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:09:00,656 - app - INFO - REQUEST_END - ID:d5ff6cf6-1330-460a-8bbf-5b53533a4eb1 Status:200 Time:0.001s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:09:10,743 - app - INFO - REQUEST_START - ID:6322ae7e-e6fe-42b2-bdd4-e7b7fe3fb874 Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:09:10,744 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:09:10,745 - app - INFO - REQUEST_END - ID:6322ae7e-e6fe-42b2-bdd4-e7b7fe3fb874 Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:09:20,826 - app - INFO - REQUEST_START - ID:4b037c05-6303-4149-9408-e70af0004929 Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:09:20,827 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:09:20,828 - app - INFO - REQUEST_END - ID:4b037c05-6303-4149-9408-e70af0004929 Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:09:30,909 - app - INFO - REQUEST_START - ID:3942b262-cc83-4298-b020-edf2fe17249f Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:09:30,910 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:09:30,911 - app - INFO - REQUEST_END - ID:3942b262-cc83-4298-b020-edf2fe17249f Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:09:40,995 - app - INFO - REQUEST_START - ID:a7ab3e51-33de-4aec-ae87-1448b2b9dae4 Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:09:40,996 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:09:40,996 - app - INFO - REQUEST_END - ID:a7ab3e51-33de-4aec-ae87-1448b2b9dae4 Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:09:51,078 - app - INFO - REQUEST_START - ID:6c98c220-fd1d-4d06-88a6-060a084c66c6 Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:09:51,080 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:09:51,081 - app - INFO - REQUEST_END - ID:6c98c220-fd1d-4d06-88a6-060a084c66c6 Status:200 Time:0.003s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:10:01,167 - app - INFO - REQUEST_START - ID:b78b17fc-da1f-4700-a9c1-fbb38fa687fd Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:10:01,168 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:10:01,169 - app - INFO - REQUEST_END - ID:b78b17fc-da1f-4700-a9c1-fbb38fa687fd Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:10:11,247 - app - INFO - REQUEST_START - ID:58cabdf3-3b06-49fd-b2f0-d944df858a54 Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:10:11,248 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:10:11,248 - app - INFO - REQUEST_END - ID:58cabdf3-3b06-49fd-b2f0-d944df858a54 Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:10:21,331 - app - INFO - REQUEST_START - ID:6a928e87-57db-4317-9aae-a0692e9fc1cf Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:10:21,332 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:10:21,332 - app - INFO - REQUEST_END - ID:6a928e87-57db-4317-9aae-a0692e9fc1cf Status:200 Time:0.001s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:10:31,415 - app - INFO - REQUEST_START - ID:9f66b201-7969-4153-8dce-4092d1986c35 Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:10:31,416 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:10:31,417 - app - INFO - REQUEST_END - ID:9f66b201-7969-4153-8dce-4092d1986c35 Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:10:41,508 - app - INFO - REQUEST_START - ID:7cb9e729-3077-4678-a1eb-4be5127f5eed Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:10:41,509 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:10:41,510 - app - INFO - REQUEST_END - ID:7cb9e729-3077-4678-a1eb-4be5127f5eed Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:10:51,587 - app - INFO - REQUEST_START - ID:a43cc054-03a2-4cb9-84f5-fd7d9078bf85 Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:10:51,587 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:10:51,588 - app - INFO - REQUEST_END - ID:a43cc054-03a2-4cb9-84f5-fd7d9078bf85 Status:200 Time:0.001s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:11:01,663 - app - INFO - REQUEST_START - ID:f97128fb-0c6e-4b55-bb83-f2253e32879d Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:11:01,664 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:11:01,665 - app - INFO - REQUEST_END - ID:f97128fb-0c6e-4b55-bb83-f2253e32879d Status:200 Time:0.001s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:11:11,748 - app - INFO - REQUEST_START - ID:8b521899-9b06-4bd0-95f6-4f47a1d38af6 Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:11:11,749 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:11:11,750 - app - INFO - REQUEST_END - ID:8b521899-9b06-4bd0-95f6-4f47a1d38af6 Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:11:21,832 - app - INFO - REQUEST_START - ID:77350682-3db8-4942-ac16-617c5f3052c9 Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:11:21,834 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:11:21,835 - app - INFO - REQUEST_END - ID:77350682-3db8-4942-ac16-617c5f3052c9 Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:11:31,915 - app - INFO - REQUEST_START - ID:dcbe8358-2b65-456c-9335-64e6c03372ae Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:11:31,916 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:11:31,917 - app - INFO - REQUEST_END - ID:dcbe8358-2b65-456c-9335-64e6c03372ae Status:200 Time:0.001s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:11:42,003 - app - INFO - REQUEST_START - ID:a5e61753-edd8-4e7d-9a04-046bac57e132 Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:11:42,004 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:11:42,005 - app - INFO - REQUEST_END - ID:a5e61753-edd8-4e7d-9a04-046bac57e132 Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:11:52,088 - app - INFO - REQUEST_START - ID:60993ba8-0d67-4660-bf3b-342b1a15ad19 Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:11:52,089 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:11:52,089 - app - INFO - REQUEST_END - ID:60993ba8-0d67-4660-bf3b-342b1a15ad19 Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:11:53,430 - app - INFO - REQUEST_START - ID:736aa3bd-9479-4a73-bfcd-170b3d1d8fac Method:GET URL:http://localhost:8001/api/charts/daily-totals?start_date=2025-08-01&end_date=2025-08-18&plant=total IP:172.19.0.1 User:anonymous UA:Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/13
+2025-08-18 21:11:53,434 - app - INFO - REQUEST_START - ID:6b0901e2-d5c0-4217-a3bd-5f3f77cb81f0 Method:GET URL:http://localhost:8001/api/totals/all?date=08-18-2025 IP:172.19.0.1 User:anonymous UA:Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/13
+2025-08-18 21:11:53,596 - app - INFO - REQUEST_END - ID:736aa3bd-9479-4a73-bfcd-170b3d1d8fac Status:200 Time:0.166s Method:GET URL:http://localhost:8001/api/charts/daily-totals?start_date=2025-08-01&end_date=2025-08-18&plant=total User:anonymous
+2025-08-18 21:11:53,635 - app - INFO - REQUEST_START - ID:3f4337d5-116d-4b80-bfce-d27882443056 Method:GET URL:http://localhost:8001/api/charts/daily-totals?start_date=2025-08-01&end_date=2025-08-18&plant=total IP:172.19.0.1 User:anonymous UA:Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/13
+2025-08-18 21:11:53,672 - app - INFO - REQUEST_END - ID:3f4337d5-116d-4b80-bfce-d27882443056 Status:200 Time:0.037s Method:GET URL:http://localhost:8001/api/charts/daily-totals?start_date=2025-08-01&end_date=2025-08-18&plant=total User:anonymous
+2025-08-18 21:11:57,437 - app - INFO - REQUEST_END - ID:6b0901e2-d5c0-4217-a3bd-5f3f77cb81f0 Status:200 Time:4.004s Method:GET URL:http://localhost:8001/api/totals/all?date=08-18-2025 User:anonymous
+2025-08-18 21:11:57,446 - app - INFO - REQUEST_START - ID:b555ee1b-ffea-41c1-abdb-db068777235c Method:GET URL:http://localhost:8001/api/totals/all?date=08-18-2025 IP:172.19.0.1 User:anonymous UA:Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/13
+2025-08-18 21:12:01,504 - app - INFO - REQUEST_END - ID:b555ee1b-ffea-41c1-abdb-db068777235c Status:200 Time:4.058s Method:GET URL:http://localhost:8001/api/totals/all?date=08-18-2025 User:anonymous
+2025-08-18 21:12:02,179 - app - INFO - REQUEST_START - ID:38377362-fa2c-4363-89df-54596b50c6b3 Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:12:02,180 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:12:02,180 - app - INFO - REQUEST_END - ID:38377362-fa2c-4363-89df-54596b50c6b3 Status:200 Time:0.001s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:12:12,265 - app - INFO - REQUEST_START - ID:3499d56b-5b5e-4308-a4ec-6678946a68fb Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:12:12,266 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:12:12,267 - app - INFO - REQUEST_END - ID:3499d56b-5b5e-4308-a4ec-6678946a68fb Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:12:22,353 - app - INFO - REQUEST_START - ID:69067754-85a8-4845-a1df-455fd376e4d3 Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:12:22,354 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:12:22,354 - app - INFO - REQUEST_END - ID:69067754-85a8-4845-a1df-455fd376e4d3 Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:12:32,444 - app - INFO - REQUEST_START - ID:7c07adf4-a592-4b42-974f-b2d795716193 Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:12:32,445 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:12:32,445 - app - INFO - REQUEST_END - ID:7c07adf4-a592-4b42-974f-b2d795716193 Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:12:42,528 - app - INFO - REQUEST_START - ID:5db8da30-83d2-486a-bcfc-10670878f0fc Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:12:42,529 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:12:42,530 - app - INFO - REQUEST_END - ID:5db8da30-83d2-486a-bcfc-10670878f0fc Status:200 Time:0.001s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:12:52,616 - app - INFO - REQUEST_START - ID:e0c8a77c-2666-447a-aeb5-edcf69aaf39e Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:12:52,617 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:12:52,618 - app - INFO - REQUEST_END - ID:e0c8a77c-2666-447a-aeb5-edcf69aaf39e Status:200 Time:0.001s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:13:02,708 - app - INFO - REQUEST_START - ID:027c5ec4-284b-437b-a11c-a21060e13950 Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:13:02,709 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:13:02,710 - app - INFO - REQUEST_END - ID:027c5ec4-284b-437b-a11c-a21060e13950 Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:13:12,794 - app - INFO - REQUEST_START - ID:999ed063-586e-48ef-902c-981317ec7e47 Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:13:12,795 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:13:12,796 - app - INFO - REQUEST_END - ID:999ed063-586e-48ef-902c-981317ec7e47 Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:13:22,875 - app - INFO - REQUEST_START - ID:883e71e5-2f39-48e1-a0dc-0a87da0d2885 Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:13:22,877 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:13:22,877 - app - INFO - REQUEST_END - ID:883e71e5-2f39-48e1-a0dc-0a87da0d2885 Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:13:32,958 - app - INFO - REQUEST_START - ID:1913237a-f94b-48d9-aaa7-e3fb4097aa80 Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:13:32,960 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:13:32,960 - app - INFO - REQUEST_END - ID:1913237a-f94b-48d9-aaa7-e3fb4097aa80 Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:13:43,040 - app - INFO - REQUEST_START - ID:5a858f64-8c08-44db-a877-af2e4615edc5 Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:13:43,041 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:13:43,042 - app - INFO - REQUEST_END - ID:5a858f64-8c08-44db-a877-af2e4615edc5 Status:200 Time:0.001s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:13:53,127 - app - INFO - REQUEST_START - ID:5a25e5ff-1a7a-48cb-a02f-932e01ccbbee Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:13:53,128 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:13:53,128 - app - INFO - REQUEST_END - ID:5a25e5ff-1a7a-48cb-a02f-932e01ccbbee Status:200 Time:0.001s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:14:03,206 - app - INFO - REQUEST_START - ID:5ff737c7-64b5-42b3-b40c-e6d27fe5aa4f Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:14:03,207 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:14:03,207 - app - INFO - REQUEST_END - ID:5ff737c7-64b5-42b3-b40c-e6d27fe5aa4f Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:14:13,290 - app - INFO - REQUEST_START - ID:ce306d3e-9824-4195-8b42-850b40b08a10 Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:14:13,291 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:14:13,291 - app - INFO - REQUEST_END - ID:ce306d3e-9824-4195-8b42-850b40b08a10 Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:14:23,377 - app - INFO - REQUEST_START - ID:6f5a1c42-4fcf-435b-af9d-75bceb489fc0 Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:14:23,378 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:14:23,379 - app - INFO - REQUEST_END - ID:6f5a1c42-4fcf-435b-af9d-75bceb489fc0 Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:14:33,466 - app - INFO - REQUEST_START - ID:7f67b805-feac-4ab3-a1bf-01d116d7724c Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:14:33,467 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:14:33,468 - app - INFO - REQUEST_END - ID:7f67b805-feac-4ab3-a1bf-01d116d7724c Status:200 Time:0.002s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 21:14:43,550 - app - INFO - REQUEST_START - ID:5b8c720b-a1fa-4388-8f22-b6eb92bb632f Method:GET URL:http://localhost:8001/ IP:127.0.0.1 User:anonymous UA:curl/7.88.1
+2025-08-18 21:14:43,551 - app - INFO - Acceso al endpoint raíz de la aplicación
+2025-08-18 21:14:43,551 - app - INFO - REQUEST_END - ID:5b8c720b-a1fa-4388-8f22-b6eb92bb632f Status:200 Time:0.001s Method:GET URL:http://localhost:8001/ User:anonymous
+2025-08-18 18:16:06,114 - app - INFO - Sistema de logging inicializado correctamente
+2025-08-18 18:28:59,423 - app - INFO - Sistema de logging inicializado correctamente
+2025-08-18 18:29:11,252 - app - INFO - REQUEST_START - ID:a1d54b9c-dba5-4fc6-99d7-b5c780266899 Method:GET URL:http://localhost:8001/api/charts/daily-totals?start_date=2025-08-01&end_date=2025-08-18&plant=total IP:127.0.0.1 User:anonymous UA:Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/13
+2025-08-18 18:29:11,256 - app - INFO - REQUEST_START - ID:5a8e8116-a534-4169-8cab-0ba6bd9b9efa Method:GET URL:http://localhost:8001/api/totals/all?date=08-18-2025 IP:127.0.0.1 User:anonymous UA:Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/13
+2025-08-18 18:29:11,410 - app - INFO - REQUEST_END - ID:a1d54b9c-dba5-4fc6-99d7-b5c780266899 Status:200 Time:0.157s Method:GET URL:http://localhost:8001/api/charts/daily-totals?start_date=2025-08-01&end_date=2025-08-18&plant=total User:anonymous
+2025-08-18 18:29:15,522 - app - INFO - REQUEST_END - ID:5a8e8116-a534-4169-8cab-0ba6bd9b9efa Status:200 Time:4.266s Method:GET URL:http://localhost:8001/api/totals/all?date=08-18-2025 User:anonymous
+2025-08-18 18:30:20,420 - app - INFO - REQUEST_START - ID:c5a23c88-5849-410e-9927-8781883499d0 Method:GET URL:http://localhost:8001/api/charts/daily-totals?start_date=2025-08-01&end_date=2025-08-18&plant=total IP:127.0.0.1 User:anonymous UA:Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/13
+2025-08-18 18:30:20,427 - app - INFO - REQUEST_START - ID:b1a159ef-cb95-4980-8448-9218ecfde7de Method:GET URL:http://localhost:8001/api/totals/all?date=08-18-2025 IP:127.0.0.1 User:anonymous UA:Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/13
+2025-08-18 18:30:20,477 - app - INFO - REQUEST_END - ID:c5a23c88-5849-410e-9927-8781883499d0 Status:200 Time:0.057s Method:GET URL:http://localhost:8001/api/charts/daily-totals?start_date=2025-08-01&end_date=2025-08-18&plant=total User:anonymous
+2025-08-18 18:30:25,017 - app - INFO - REQUEST_END - ID:b1a159ef-cb95-4980-8448-9218ecfde7de Status:200 Time:4.590s Method:GET URL:http://localhost:8001/api/totals/all?date=08-18-2025 User:anonymous
+2025-08-18 18:30:27,377 - app - INFO - REQUEST_START - ID:b8f0545c-f026-4e1a-836c-eb8c3a475325 Method:GET URL:http://localhost:8001/api/deposits/db/by-plant?date=2025-08-18 IP:127.0.0.1 User:anonymous UA:Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/13
+2025-08-18 18:30:32,003 - app - INFO - REQUEST_END - ID:b8f0545c-f026-4e1a-836c-eb8c3a475325 Status:200 Time:4.626s Method:GET URL:http://localhost:8001/api/deposits/db/by-plant?date=2025-08-18 User:anonymous
+2025-08-18 18:30:45,349 - app - INFO - REQUEST_START - ID:ee9f7fe1-9561-4159-9e3e-e53f42202b53 Method:GET URL:http://localhost:8001/api/deposits/db/by-plant?date=2025-08-18 IP:127.0.0.1 User:anonymous UA:Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/13
+2025-08-18 18:30:49,525 - app - INFO - REQUEST_END - ID:ee9f7fe1-9561-4159-9e3e-e53f42202b53 Status:200 Time:4.176s Method:GET URL:http://localhost:8001/api/deposits/db/by-plant?date=2025-08-18 User:anonymous
+2025-08-18 18:39:58,612 - app - INFO - Sistema de logging inicializado correctamente
+2025-08-18 18:42:10,779 - app - INFO - Sistema de logging inicializado correctamente
+2025-08-18 18:42:43,051 - app - INFO - Sistema de logging inicializado correctamente
+2025-08-18 18:43:06,835 - app - INFO - Sistema de logging inicializado correctamente
+2025-08-18 18:43:19,125 - app - INFO - REQUEST_START - ID:238caeeb-6bf0-4e2b-9042-71c20d64ebc5 Method:GET URL:http://localhost:8001/api/deposits/db/by-plant?date=2025-08-18 IP:127.0.0.1 User:anonymous UA:curl/8.5.0
+2025-08-18 18:43:23,489 - app - INFO - REQUEST_END - ID:238caeeb-6bf0-4e2b-9042-71c20d64ebc5 Status:200 Time:4.364s Method:GET URL:http://localhost:8001/api/deposits/db/by-plant?date=2025-08-18 User:anonymous
+2025-08-18 18:44:25,482 - app - INFO - REQUEST_START - ID:5e673713-30a6-435b-be3f-57a3f495cbc6 Method:GET URL:http://localhost:8001/api/deposits/db/by-plant?date=2025-08-15 IP:127.0.0.1 User:anonymous UA:curl/8.5.0
+2025-08-18 18:44:26,378 - app - INFO - REQUEST_END - ID:5e673713-30a6-435b-be3f-57a3f495cbc6 Status:200 Time:0.896s Method:GET URL:http://localhost:8001/api/deposits/db/by-plant?date=2025-08-15 User:anonymous
+2025-08-18 18:47:50,802 - app - INFO - Sistema de logging inicializado correctamente

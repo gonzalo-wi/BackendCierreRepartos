@@ -69,8 +69,9 @@ class RepartoCierreService:
                     idreparto = self._clean_reparto_id(deposit.deposit_id)
                     logging.warning(f"⚠️ No se pudo extraer idreparto de user_name '{deposit.user_name}', usando deposit_id: {idreparto}")
                 
-                # Usar el valor esperado como efectivo (no el real)
-                efectivo_importe = str(deposit.deposit_esperado or deposit.total_amount)
+                # Usar el efectivo esperado guardado en la base de datos
+                # Si no hay efectivo esperado, usar el total_amount como fallback
+                efectivo_importe = str(deposit.efectivo_esperado or deposit.total_amount or 0)
                 
                 reparto_data = {
                     "id": deposit.id,
@@ -731,3 +732,51 @@ class RepartoCierreService:
             db.rollback()
         finally:
             db.close()
+
+    def _obtener_efectivo_para_cierre_RESPALDO(self, idreparto: int, deposit: Deposit) -> str:
+        """
+        FUNCIÓN DE RESPALDO - Ya no se usa, ahora obtenemos el efectivo desde deposit.efectivo_esperado
+        
+        Obtiene solo el valor del efectivo desde la API externa para el cierre del reparto.
+        Esto asegura que enviemos solo el efectivo, no el total (efectivo + retenciones + cheques).
+        
+        Args:
+            idreparto: ID del reparto
+            deposit: Objeto deposit de la base de datos
+            
+        Returns:
+            String con el valor del efectivo únicamente
+        """
+        try:
+            # Formatear fecha para la API externa
+            fecha_formatted = deposit.date_time.strftime("%d/%m/%Y") if deposit.date_time else datetime.now().strftime("%d/%m/%Y")
+            
+            # URL de la API externa para obtener valores
+            api_url = f"http://192.168.0.8:97/service1.asmx/reparto_get_valores?fecha={fecha_formatted}"
+            
+            logging.info(f"🔍 Consultando API externa para obtener efectivo del reparto {idreparto}: {api_url}")
+            
+            response = requests.get(api_url, timeout=10)
+            response.raise_for_status()
+            
+            # Parsear la respuesta JSON
+            valores_data = response.json()
+            
+            # Buscar el reparto específico en la respuesta
+            for reparto_data in valores_data:
+                reparto_id_api = reparto_data.get("IdReparto") or reparto_data.get("idreparto")
+                if reparto_id_api == idreparto:
+                    # Obtener solo el valor del efectivo
+                    efectivo = float(reparto_data.get("Efectivo", 0) or reparto_data.get("efectivo", 0) or 0)
+                    logging.info(f"💰 Efectivo encontrado para reparto {idreparto}: ${efectivo}")
+                    return str(efectivo)
+            
+            # Si no se encuentra el reparto en la API, usar fallback
+            logging.warning(f"⚠️ Reparto {idreparto} no encontrado en API externa. Usando total_amount como fallback.")
+            return str(deposit.total_amount or 0)
+            
+        except Exception as e:
+            logging.error(f"❌ Error al obtener efectivo desde API externa para reparto {idreparto}: {str(e)}")
+            # Fallback: usar el monto real del depósito (no el esperado que ahora es la suma)
+            logging.warning(f"⚠️ Usando total_amount como fallback para reparto {idreparto}")
+            return str(deposit.total_amount or 0)
