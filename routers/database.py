@@ -36,18 +36,29 @@ def get_deposits_from_db_by_plant(date: str = Query(...)):
     try:
         from database import SessionLocal
         from sqlalchemy import func
+        from sqlalchemy.types import Date
         from datetime import datetime as dt
         from models.deposit import Deposit
         from services.deposits_service import get_all_deposits, save_deposits_to_db
         from services.repartos_api_service import actualizar_depositos_esperados
         
-        # Verificar si es hoy y auto-sincronizar datos frescos de miniBank
+        # Verificar si hay depósitos en la base de datos para esta fecha
         today = datetime.now().strftime("%Y-%m-%d")
         auto_synced_minibank = False
+        auto_synced_expected = False
         
-        if date == today:
+        # Verificar si ya hay datos en la base de datos
+        db_temp = SessionLocal()
+        query_date_temp = dt.strptime(date, "%Y-%m-%d").date()
+        existing_deposits_count = db_temp.query(Deposit).filter(
+            func.cast(Deposit.date_time, Date) == query_date_temp
+        ).count()
+        db_temp.close()
+        
+        # Auto-sincronizar miniBank si no hay datos O si es hoy
+        if existing_deposits_count == 0 or date == today:
             try:
-                print(f"🔄 Auto-sincronizando datos frescos de miniBank para hoy: {date}")
+                print(f"🔄 Auto-sincronizando datos de miniBank para {date} (existentes: {existing_deposits_count})")
                 # Obtener datos frescos de la API de miniBank y guardarlos
                 fresh_data = get_all_deposits(date)
                 save_deposits_to_db(fresh_data)
@@ -138,7 +149,21 @@ def get_deposits_from_db_by_plant(date: str = Query(...)):
                     "importe": float(retencion.importe) if retencion.importe else 0.0
                 } for retencion in deposit.retenciones],
                 "total_cheques": len(deposit.cheques),
-                "total_retenciones": len(deposit.retenciones)
+                "total_retenciones": len(deposit.retenciones),
+                # Semáforos para indicar documentos pendientes/completados
+                "semaforo_docs": {
+                    "cheques_esperados": "C" in (deposit.composicion_esperado or ""),
+                    "retenciones_esperadas": "R" in (deposit.composicion_esperado or ""),
+                    "cheques_cargados": len(deposit.cheques) > 0,
+                    "retenciones_cargadas": len(deposit.retenciones) > 0,
+                    "cheques_pendientes": "C" in (deposit.composicion_esperado or "") and len(deposit.cheques) == 0,
+                    "retenciones_pendientes": "R" in (deposit.composicion_esperado or "") and len(deposit.retenciones) == 0,
+                    "docs_completos": (
+                        ("C" not in (deposit.composicion_esperado or "") or len(deposit.cheques) > 0) and
+                        ("R" not in (deposit.composicion_esperado or "") or len(deposit.retenciones) > 0)
+                    ),
+                    "tiene_docs_esperados": "C" in (deposit.composicion_esperado or "") or "R" in (deposit.composicion_esperado or "")
+                }
             }
             
             if deposit.identifier in plants["jumillano"]["machines"]:
@@ -234,6 +259,44 @@ def get_deposits_from_db_by_machine(date: str = Query(...)):
                 "currency_code": deposit.currency_code,
                 "deposit_type": deposit.deposit_type,
                 "date_time": deposit.date_time.isoformat(),
+                # Agregar cheques y retenciones directamente
+                "cheques": [{
+                    "id": cheque.id,
+                    "nrocta": cheque.nrocta,
+                    "concepto": cheque.concepto,
+                    "banco": cheque.banco,
+                    "sucursal": cheque.sucursal,
+                    "localidad": cheque.localidad,
+                    "nro_cheque": cheque.nro_cheque,
+                    "nro_cuenta": cheque.nro_cuenta,
+                    "titular": cheque.titular,
+                    "fecha": cheque.fecha,
+                    "importe": float(cheque.importe) if cheque.importe else 0.0
+                } for cheque in deposit.cheques],
+                "retenciones": [{
+                    "id": retencion.id,
+                    "nrocta": retencion.nrocta,
+                    "concepto": retencion.concepto,
+                    "nro_retencion": retencion.nro_retencion,
+                    "fecha": retencion.fecha,
+                    "importe": float(retencion.importe) if retencion.importe else 0.0
+                } for retencion in deposit.retenciones],
+                "total_cheques": len(deposit.cheques),
+                "total_retenciones": len(deposit.retenciones),
+                # Semáforos para indicar documentos pendientes/completados
+                "semaforo_docs": {
+                    "cheques_esperados": "C" in (deposit.composicion_esperado or ""),
+                    "retenciones_esperadas": "R" in (deposit.composicion_esperado or ""),
+                    "cheques_cargados": len(deposit.cheques) > 0,
+                    "retenciones_cargadas": len(deposit.retenciones) > 0,
+                    "cheques_pendientes": "C" in (deposit.composicion_esperado or "") and len(deposit.cheques) == 0,
+                    "retenciones_pendientes": "R" in (deposit.composicion_esperado or "") and len(deposit.retenciones) == 0,
+                    "docs_completos": (
+                        ("C" not in (deposit.composicion_esperado or "") or len(deposit.cheques) > 0) and
+                        ("R" not in (deposit.composicion_esperado or "") or len(deposit.retenciones) > 0)
+                    ),
+                    "tiene_docs_esperados": "C" in (deposit.composicion_esperado or "") or "R" in (deposit.composicion_esperado or "")
+                }
             }
             
             machines[machine_id]["deposits"].append(deposit_data)

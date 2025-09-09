@@ -20,7 +20,7 @@ class RepartoCierreService:
     """
     
     def __init__(self):
-        self.soap_url = "http://192.168.0.8:8097/service1.asmx"  
+        self.soap_url = "http://192.168.0.8:97/service1.asmx"  
         self.soap_namespace = "http://airtech-it.com.ar/"
         
         self.production_mode = os.getenv("REPARTO_CIERRE_PRODUCTION", "False").lower() == "true"

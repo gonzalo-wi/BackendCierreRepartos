@@ -31,9 +31,10 @@ def get_repartos_valores(fecha: str) -> List[Dict]:
         # Filtrar repartos que tienen valores (efectivo > 0 o retenciones > 0 o cheques > 0)
         repartos_con_valores = []
         for r in data:
-            efectivo = float(r.get("Efectivo", 0) or 0)
-            retenciones = float(r.get("Retenciones", 0) or 0)
-            cheques = float(r.get("Cheques", 0) or 0)
+            # Buscar tanto mayúsculas como minúsculas
+            efectivo = float(r.get("efectivo", 0) or r.get("Efectivo", 0) or 0)
+            retenciones = float(r.get("Retenciones", 0) or r.get("retenciones", 0) or 0)
+            cheques = float(r.get("Cheques", 0) or r.get("cheques", 0) or 0)
             
             if efectivo > 0 or retenciones > 0 or cheques > 0:
                 repartos_con_valores.append(r)
