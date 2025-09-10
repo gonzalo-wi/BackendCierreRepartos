@@ -27,7 +27,7 @@ class Deposit(Base):
     date_time        = Column(DateTime)
     pos_name         = Column(String(255))
     st_name          = Column(String(255))
-    estado           = Column(Enum(EstadoDeposito), default=EstadoDeposito.PENDIENTE)
+    estado           = Column(Enum(EstadoDeposito), default=EstadoDeposito.LISTO)
     fecha_envio      = Column(DateTime, nullable=True)  # Fecha cuando se envió el reparto
 
     # Relaciones con cheques y retenciones
@@ -50,20 +50,10 @@ class Deposit(Base):
     
     
     def actualizar_estado(self):
-        """Actualiza el estado basado en la diferencia"""
-        if self.deposit_esperado is None or self.deposit_esperado == 0:
+        """Actualiza el estado: PENDIENTE si tiene cheques o retenciones, LISTO si no tiene ninguno"""
+        tiene_cheques = hasattr(self, 'cheques') and self.cheques and len(self.cheques) > 0
+        tiene_retenciones = hasattr(self, 'retenciones') and self.retenciones and len(self.retenciones) > 0
+        if tiene_cheques or tiene_retenciones:
             self.estado = EstadoDeposito.PENDIENTE
         else:
-            # Diferencia = monto_real - monto_esperado
-            # Positivo = sobra dinero, Negativo = falta dinero
-            diferencia = self.total_amount - self.deposit_esperado
-            
-            # Si falta dinero (diferencia negativa) y el faltante es >= 10000
-            if diferencia < 0 and abs(diferencia) >= TOLERANCE_DIFFERENCE:
-                self.estado = EstadoDeposito.PENDIENTE
-            else:
-                # En todos los demás casos está LISTO:
-                # - Si sobra dinero (cualquier cantidad)
-                # - Si falta dinero pero menos de 10000
-                # - Si está exacto (diferencia = 0)
-                self.estado = EstadoDeposito.LISTO
+            self.estado = EstadoDeposito.LISTO
